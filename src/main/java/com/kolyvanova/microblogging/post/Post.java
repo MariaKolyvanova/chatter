@@ -3,6 +3,8 @@ package com.kolyvanova.microblogging.post;
 import com.kolyvanova.microblogging.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -47,11 +49,13 @@ public class Post {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
-    private String category;
+    private PostCategory category;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String status;
+    private PostStatus status;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

@@ -2,6 +2,8 @@ package com.kolyvanova.microblogging.user;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -47,16 +49,18 @@ public class User {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private String role;
+    private UserRole role;
 
     @Column(length = 100)
     private String location;
 
     private LocalDate birthDate;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private String status;
+    private UserStatus status;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

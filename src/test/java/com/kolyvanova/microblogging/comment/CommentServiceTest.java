@@ -133,6 +133,20 @@ class CommentServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void findAll() {
+        User author = createUser();
+        Post post = createPost(author);
+        CommentReadDto first = commentService.create(createDto(post, author, "First comment"));
+        CommentReadDto second = commentService.create(createDto(post, author, "Second comment"));
+
+        List<CommentReadDto> result = commentService.findAll();
+
+        assertEquals(2, result.size());
+        assertTrue(result.stream().map(CommentReadDto::id).toList()
+                .containsAll(List.of(first.id(), second.id())));
+    }
+
+    @Test
     void findAllByPostId() {
         User author = createUser();
         Post post = createPost(author);

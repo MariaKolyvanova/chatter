@@ -35,6 +35,11 @@ public class CommentRestController {
         return commentService.findById(id);
     }
 
+    @GetMapping
+    public List<CommentReadDto> findAll() {
+        return commentService.findAll();
+    }
+
     @GetMapping(params = {"postId", "!authorId"})
     public List<CommentReadDto> findAllByPostId(@RequestParam("postId") UUID postId) {
         return commentService.findAllByPostId(postId);

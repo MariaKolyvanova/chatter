@@ -41,6 +41,15 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
+    public List<CommentReadDto> findAll() {
+        List<Comment> comment = commentRepository.findAll();
+
+        return comment.stream()
+                .map(commentMapper::toReadDto)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public CommentReadDto findById(UUID id) {
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new CommentNotFoundException(id));

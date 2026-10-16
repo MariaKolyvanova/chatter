@@ -1,0 +1,18 @@
+package com.kolyvanova.microblogging.like;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+@Mapper(componentModel = "spring")
+public interface LikeMapper {
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "post", ignore = true)
+    @Mapping(target = "user", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    Like toEntity(LikeCreateDto dto);
+
+    @Mapping(target = "postId", source = "post.id")
+    @Mapping(target = "userId", source = "user.id")
+    LikeReadDto toReadDto(Like like);
+}

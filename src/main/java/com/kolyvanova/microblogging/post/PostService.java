@@ -33,14 +33,6 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public PostReadDto findById(UUID id) {
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new PostNotFoundException(id));
-
-        return postMapper.toReadDto(post);
-    }
-
-    @Transactional(readOnly = true)
     public List<PostReadDto> findAll() {
         List<Post> posts = postRepository.findAll();
 
@@ -50,8 +42,16 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
+    public PostReadDto findById(UUID id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new PostNotFoundException(id));
+
+        return postMapper.toReadDto(post);
+    }
+
+    @Transactional(readOnly = true)
     public List<PostReadDto> findAllByAuthorId(UUID id) {
-        List<Post> posts = postRepository.findAllByAuthor_Id(id);
+        List<Post> posts = postRepository.findAllByAuthorId(id);
 
         return posts.stream()
                 .map(postMapper::toReadDto)

@@ -8,6 +8,6 @@ import java.util.UUID;
 
 public interface PostRepository extends JpaRepository<Post, UUID> {
 
-    List<Post> findAllByAuthor_Id(UUID authorId);
+    List<Post> findAllByAuthorId(UUID authorId);
 
 }

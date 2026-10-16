@@ -3,6 +3,7 @@ package com.kolyvanova.microblogging.post;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +29,11 @@ public class PostRestController {
     @GetMapping("/{id}")
     public PostReadDto findById(@PathVariable UUID id) {
         return postService.findById(id);
+    }
+
+    @GetMapping(params = "authorId")
+    public List<PostReadDto> findAllByAuthorId(@RequestParam UUID authorId) {
+        return postService.findAllByAuthorId(authorId);
     }
 
     @PutMapping("/{id}")

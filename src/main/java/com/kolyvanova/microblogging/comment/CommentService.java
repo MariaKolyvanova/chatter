@@ -8,10 +8,11 @@ import com.kolyvanova.microblogging.post.PostRepository;
 import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -41,12 +42,10 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<CommentReadDto> findAll() {
-        List<Comment> comment = commentRepository.findAll();
+    public Page<CommentReadDto> findAll(Pageable pageable) {
+        Page<Comment> comment = commentRepository.findAll(pageable);
 
-        return comment.stream()
-                .map(commentMapper::toReadDto)
-                .toList();
+        return comment.map(commentMapper::toReadDto);
     }
 
     @Transactional(readOnly = true)
@@ -58,21 +57,17 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<CommentReadDto> findAllByPostId(UUID id) {
-        List<Comment> comments = commentRepository.findAllByPostId(id);
+    public Page<CommentReadDto> findAllByPostId(UUID id, Pageable pageable) {
+        Page<Comment> comments = commentRepository.findAllByPostId(id, pageable);
 
-        return comments.stream()
-                .map(commentMapper::toReadDto)
-                .toList();
+        return comments.map(commentMapper::toReadDto);
     }
 
     @Transactional(readOnly = true)
-    public List<CommentReadDto> findAllByAuthorId(UUID id) {
-        List<Comment> comments = commentRepository.findAllByAuthorId(id);
+    public Page<CommentReadDto> findAllByAuthorId(UUID id, Pageable pageable) {
+        Page<Comment> comments = commentRepository.findAllByAuthorId(id, pageable);
 
-        return comments.stream()
-                .map(commentMapper::toReadDto)
-                .toList();
+        return comments.map(commentMapper::toReadDto);
     }
 
     @Transactional

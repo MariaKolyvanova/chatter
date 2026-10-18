@@ -16,6 +16,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.UUID;
@@ -139,11 +142,20 @@ class CommentServiceTest extends AbstractIntegrationTest {
         CommentReadDto first = commentService.create(createDto(post, author, "First comment"));
         CommentReadDto second = commentService.create(createDto(post, author, "Second comment"));
 
-        List<CommentReadDto> result = commentService.findAll();
+        Page<CommentReadDto> result = commentService.findAll(
+                PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "content")));
 
-        assertEquals(2, result.size());
-        assertTrue(result.stream().map(CommentReadDto::id).toList()
-                .containsAll(List.of(first.id(), second.id())));
+        assertEquals(1, result.getNumberOfElements());
+        assertEquals(2, result.getTotalElements());
+        assertEquals(2, result.getTotalPages());
+        assertFalse(result.isLast());
+        assertEquals(first.id(), result.getContent().getFirst().id());
+
+        Page<CommentReadDto> secondPage = commentService.findAll(
+                PageRequest.of(1, 1, Sort.by(Sort.Direction.ASC, "content")));
+        assertEquals(1, secondPage.getNumberOfElements());
+        assertTrue(secondPage.isLast());
+        assertEquals(second.id(), secondPage.getContent().getFirst().id());
     }
 
     @Test
@@ -155,12 +167,18 @@ class CommentServiceTest extends AbstractIntegrationTest {
         CommentReadDto second = commentService.create(createDto(post, author, "Second comment"));
         commentService.create(createDto(anotherPost, author, "Comment on another post"));
 
-        List<CommentReadDto> result = commentService.findAllByPostId(post.getId());
+        Page<CommentReadDto> result = commentService.findAllByPostId(
+                post.getId(), PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "content")));
 
-        assertEquals(2, result.size());
-        assertTrue(result.stream().map(CommentReadDto::id).toList()
-                .containsAll(List.of(first.id(), second.id())));
-        assertTrue(result.stream().allMatch(comment -> post.getId().equals(comment.postId())));
+        assertEquals(1, result.getNumberOfElements());
+        assertEquals(2, result.getTotalElements());
+        assertTrue(result.hasNext());
+        assertEquals(first.id(), result.getContent().getFirst().id());
+        assertTrue(result.getContent().stream().allMatch(comment -> post.getId().equals(comment.postId())));
+
+        Page<CommentReadDto> secondPage = commentService.findAllByPostId(
+                post.getId(), PageRequest.of(1, 1, Sort.by(Sort.Direction.ASC, "content")));
+        assertEquals(second.id(), secondPage.getContent().getFirst().id());
     }
 
     @Test
@@ -172,12 +190,18 @@ class CommentServiceTest extends AbstractIntegrationTest {
         CommentReadDto second = commentService.create(createDto(post, author, "Second comment"));
         commentService.create(createDto(post, anotherAuthor, "Another author's comment"));
 
-        List<CommentReadDto> result = commentService.findAllByAuthorId(author.getId());
+        Page<CommentReadDto> result = commentService.findAllByAuthorId(
+                author.getId(), PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "content")));
 
-        assertEquals(2, result.size());
-        assertTrue(result.stream().map(CommentReadDto::id).toList()
-                .containsAll(List.of(first.id(), second.id())));
-        assertTrue(result.stream().allMatch(comment -> author.getId().equals(comment.authorId())));
+        assertEquals(1, result.getNumberOfElements());
+        assertEquals(2, result.getTotalElements());
+        assertTrue(result.hasNext());
+        assertEquals(first.id(), result.getContent().getFirst().id());
+        assertTrue(result.getContent().stream().allMatch(comment -> author.getId().equals(comment.authorId())));
+
+        Page<CommentReadDto> secondPage = commentService.findAllByAuthorId(
+                author.getId(), PageRequest.of(1, 1, Sort.by(Sort.Direction.ASC, "content")));
+        assertEquals(second.id(), secondPage.getContent().getFirst().id());
     }
 
     @Test

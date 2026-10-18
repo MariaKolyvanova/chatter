@@ -6,9 +6,10 @@ import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -33,12 +34,8 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostReadDto> findAll() {
-        List<Post> posts = postRepository.findAll();
-
-        return posts.stream()
-                .map(postMapper::toReadDto)
-                .toList();
+    public Page<PostReadDto> findAll(Pageable pageable) {
+        return postRepository.findAll(pageable).map(postMapper::toReadDto);
     }
 
     @Transactional(readOnly = true)
@@ -50,12 +47,8 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostReadDto> findAllByAuthorId(UUID id) {
-        List<Post> posts = postRepository.findAllByAuthorId(id);
-
-        return posts.stream()
-                .map(postMapper::toReadDto)
-                .toList();
+    public Page<PostReadDto> findAllByAuthorId(UUID id, Pageable pageable) {
+        return postRepository.findAllByAuthorId(id, pageable).map(postMapper::toReadDto);
     }
 
     @Transactional

@@ -3,10 +3,12 @@ package com.kolyvanova.microblogging.post;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -22,8 +24,8 @@ public class PostRestController {
     }
 
     @GetMapping()
-    public List<PostReadDto> findAll() {
-        return postService.findAll();
+    public Page<PostReadDto> findAll(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+        return postService.findAll(pageable);
     }
 
     @GetMapping("/{id}")
@@ -32,8 +34,9 @@ public class PostRestController {
     }
 
     @GetMapping(params = "authorId")
-    public List<PostReadDto> findAllByAuthorId(@RequestParam UUID authorId) {
-        return postService.findAllByAuthorId(authorId);
+    public Page<PostReadDto> findAllByAuthorId(@RequestParam UUID authorId,
+                                               @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+        return postService.findAllByAuthorId(authorId, pageable);
     }
 
     @PutMapping("/{id}")

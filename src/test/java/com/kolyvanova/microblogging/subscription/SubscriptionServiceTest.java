@@ -13,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -110,10 +112,15 @@ class SubscriptionServiceTest extends AbstractIntegrationTest {
     void findAll() {
         SubscriptionReadDto first = subscriptionService.create(createDto(createUser(), createUser()));
         SubscriptionReadDto second = subscriptionService.create(createDto(createUser(), createUser()));
-        List<SubscriptionReadDto> result = subscriptionService.findAll();
-        assertEquals(2, result.size());
-        assertTrue(result.stream().map(SubscriptionReadDto::id).toList()
-                .containsAll(List.of(first.id(), second.id())));
+        Page<SubscriptionReadDto> firstPage = subscriptionService.findAll(PageRequest.of(0, 1));
+        Page<SubscriptionReadDto> secondPage = subscriptionService.findAll(PageRequest.of(1, 1));
+        assertEquals(1, firstPage.getNumberOfElements());
+        assertEquals(2, firstPage.getTotalElements());
+        assertEquals(2, firstPage.getTotalPages());
+        assertTrue(firstPage.hasNext());
+        assertTrue(secondPage.isLast());
+        assertTrue(List.of(first.id(), second.id()).contains(firstPage.getContent().getFirst().id()));
+        assertTrue(List.of(first.id(), second.id()).contains(secondPage.getContent().getFirst().id()));
     }
 
     @Test
@@ -122,11 +129,15 @@ class SubscriptionServiceTest extends AbstractIntegrationTest {
         SubscriptionReadDto first = subscriptionService.create(createDto(subscriber, createUser()));
         SubscriptionReadDto second = subscriptionService.create(createDto(subscriber, createUser()));
         subscriptionService.create(createDto(createUser(), createUser()));
-        List<SubscriptionReadDto> result = subscriptionService.findAllBySubscriberId(subscriber.getId());
-        assertEquals(2, result.size());
-        assertTrue(result.stream().map(SubscriptionReadDto::id).toList()
-                .containsAll(List.of(first.id(), second.id())));
-        assertTrue(result.stream().allMatch(item -> subscriber.getId().equals(item.subscriberId())));
+        Page<SubscriptionReadDto> result = subscriptionService.findAllBySubscriberId(subscriber.getId(), PageRequest.of(0, 1));
+        Page<SubscriptionReadDto> secondPage = subscriptionService.findAllBySubscriberId(subscriber.getId(), PageRequest.of(1, 1));
+        assertEquals(1, result.getNumberOfElements());
+        assertEquals(2, result.getTotalElements());
+        assertTrue(result.hasNext());
+        assertTrue(secondPage.isLast());
+        assertTrue(List.of(first.id(), second.id()).contains(result.getContent().getFirst().id()));
+        assertTrue(List.of(first.id(), second.id()).contains(secondPage.getContent().getFirst().id()));
+        assertTrue(result.getContent().stream().allMatch(item -> subscriber.getId().equals(item.subscriberId())));
     }
 
     @Test
@@ -135,11 +146,15 @@ class SubscriptionServiceTest extends AbstractIntegrationTest {
         SubscriptionReadDto first = subscriptionService.create(createDto(createUser(), author));
         SubscriptionReadDto second = subscriptionService.create(createDto(createUser(), author));
         subscriptionService.create(createDto(createUser(), createUser()));
-        List<SubscriptionReadDto> result = subscriptionService.findAllByAuthorId(author.getId());
-        assertEquals(2, result.size());
-        assertTrue(result.stream().map(SubscriptionReadDto::id).toList()
-                .containsAll(List.of(first.id(), second.id())));
-        assertTrue(result.stream().allMatch(item -> author.getId().equals(item.authorId())));
+        Page<SubscriptionReadDto> result = subscriptionService.findAllByAuthorId(author.getId(), PageRequest.of(0, 1));
+        Page<SubscriptionReadDto> secondPage = subscriptionService.findAllByAuthorId(author.getId(), PageRequest.of(1, 1));
+        assertEquals(1, result.getNumberOfElements());
+        assertEquals(2, result.getTotalElements());
+        assertTrue(result.hasNext());
+        assertTrue(secondPage.isLast());
+        assertTrue(List.of(first.id(), second.id()).contains(result.getContent().getFirst().id()));
+        assertTrue(List.of(first.id(), second.id()).contains(secondPage.getContent().getFirst().id()));
+        assertTrue(result.getContent().stream().allMatch(item -> author.getId().equals(item.authorId())));
     }
 
     @Test

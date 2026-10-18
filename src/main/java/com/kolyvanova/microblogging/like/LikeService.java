@@ -9,10 +9,11 @@ import com.kolyvanova.microblogging.post.PostRepository;
 import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -43,10 +44,9 @@ public class LikeService {
     }
 
     @Transactional(readOnly = true)
-    public List<LikeReadDto> findAll() {
-        return likeRepository.findAll().stream()
-                .map(likeMapper::toReadDto)
-                .toList();
+    public Page<LikeReadDto> findAll(Pageable pageable) {
+        return likeRepository.findAll(pageable)
+                .map(likeMapper::toReadDto);
     }
 
     @Transactional(readOnly = true)
@@ -58,17 +58,15 @@ public class LikeService {
     }
 
     @Transactional(readOnly = true)
-    public List<LikeReadDto> findAllByPostId(UUID postId) {
-        return likeRepository.findAllByPostId(postId).stream()
-                .map(likeMapper::toReadDto)
-                .toList();
+    public Page<LikeReadDto> findAllByPostId(UUID postId, Pageable pageable) {
+        return likeRepository.findAllByPostId(postId, pageable)
+                .map(likeMapper::toReadDto);
     }
 
     @Transactional(readOnly = true)
-    public List<LikeReadDto> findAllByUserId(UUID userId) {
-        return likeRepository.findAllByUserId(userId).stream()
-                .map(likeMapper::toReadDto)
-                .toList();
+    public Page<LikeReadDto> findAllByUserId(UUID userId, Pageable pageable) {
+        return likeRepository.findAllByUserId(userId, pageable)
+                .map(likeMapper::toReadDto);
     }
 
     @Transactional

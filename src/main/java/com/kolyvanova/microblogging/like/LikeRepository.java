@@ -1,15 +1,16 @@
 package com.kolyvanova.microblogging.like;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface LikeRepository extends JpaRepository<Like, UUID> {
 
     boolean existsByPostIdAndUserId(UUID postId, UUID userId);
 
-    List<Like> findAllByPostId(UUID postId);
+    Page<Like> findAllByPostId(UUID postId, Pageable pageable);
 
-    List<Like> findAllByUserId(UUID userId);
+    Page<Like> findAllByUserId(UUID userId, Pageable pageable);
 }

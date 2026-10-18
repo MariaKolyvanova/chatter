@@ -6,6 +6,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
@@ -97,13 +99,17 @@ class UserServiceTest extends AbstractIntegrationTest {
         UserReadDto first = userService.create(createDto("ivan_ivanov", "ivan@mail.ru"));
         UserReadDto second = userService.create(createDto("peter_petrov", "peter@mail.ru"));
 
-        List<UserReadDto> result = userService.findAll();
+        Page<UserReadDto> firstPage = userService.findAll(PageRequest.of(0, 1));
+        Page<UserReadDto> secondPage = userService.findAll(PageRequest.of(1, 1));
 
-        assertEquals(2, result.size());
-        assertTrue(result.stream()
-                           .map(UserReadDto::id)
-                           .toList()
-                           .containsAll(List.of(first.id(), second.id())));
+        assertEquals(1, firstPage.getNumberOfElements());
+        assertEquals(2, firstPage.getTotalElements());
+        assertEquals(2, firstPage.getTotalPages());
+        assertTrue(firstPage.hasNext());
+        assertEquals(1, secondPage.getNumberOfElements());
+        assertTrue(secondPage.isLast());
+        assertTrue(List.of(first.id(), second.id()).contains(firstPage.getContent().getFirst().id()));
+        assertTrue(List.of(first.id(), second.id()).contains(secondPage.getContent().getFirst().id()));
     }
 
     @Test

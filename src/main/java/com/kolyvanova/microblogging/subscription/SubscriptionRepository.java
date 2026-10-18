@@ -1,15 +1,16 @@
 package com.kolyvanova.microblogging.subscription;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, UUID> {
 
     boolean existsBySubscriberIdAndAuthorId(UUID subscriberId, UUID authorId);
 
-    List<Subscription> findAllBySubscriberId(UUID subscriberId);
+    Page<Subscription> findAllBySubscriberId(UUID subscriberId, Pageable pageable);
 
-    List<Subscription> findAllByAuthorId(UUID authorId);
+    Page<Subscription> findAllByAuthorId(UUID authorId, Pageable pageable);
 }

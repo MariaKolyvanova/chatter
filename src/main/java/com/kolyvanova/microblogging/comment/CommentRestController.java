@@ -2,6 +2,10 @@ package com.kolyvanova.microblogging.comment;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -36,18 +39,23 @@ public class CommentRestController {
     }
 
     @GetMapping
-    public List<CommentReadDto> findAll() {
-        return commentService.findAll();
+    public Page<CommentReadDto> findAll(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC)
+                                            Pageable pageable) {
+        return commentService.findAll(pageable);
     }
 
     @GetMapping(params = {"postId", "!authorId"})
-    public List<CommentReadDto> findAllByPostId(@RequestParam("postId") UUID postId) {
-        return commentService.findAllByPostId(postId);
+    public Page<CommentReadDto> findAllByPostId(@RequestParam UUID postId,
+                                                @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC)
+                                                Pageable pageable) {
+        return commentService.findAllByPostId(postId, pageable);
     }
 
     @GetMapping(params = {"authorId", "!postId"})
-    public List<CommentReadDto> findAllByAuthorId(@RequestParam("authorId") UUID authorId) {
-        return commentService.findAllByAuthorId(authorId);
+    public Page<CommentReadDto> findAllByAuthorId(@RequestParam UUID authorId,
+                                                  @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC)
+                                                  Pageable pageable) {
+        return commentService.findAllByAuthorId(authorId, pageable);
     }
 
     @PutMapping("/{id}")

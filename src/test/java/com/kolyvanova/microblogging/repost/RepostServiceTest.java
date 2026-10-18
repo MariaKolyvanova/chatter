@@ -17,6 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -117,9 +119,15 @@ class RepostServiceTest extends AbstractIntegrationTest {
         Post post = createPost(author);
         RepostReadDto first = repostService.create(createDto(post, createUser()));
         RepostReadDto second = repostService.create(createDto(post, createUser()));
-        List<RepostReadDto> result = repostService.findAll();
-        assertEquals(2, result.size());
-        assertTrue(result.stream().map(RepostReadDto::id).toList().containsAll(List.of(first.id(), second.id())));
+        Page<RepostReadDto> firstPage = repostService.findAll(PageRequest.of(0, 1));
+        Page<RepostReadDto> secondPage = repostService.findAll(PageRequest.of(1, 1));
+        assertEquals(1, firstPage.getNumberOfElements());
+        assertEquals(2, firstPage.getTotalElements());
+        assertEquals(2, firstPage.getTotalPages());
+        assertTrue(firstPage.hasNext());
+        assertTrue(secondPage.isLast());
+        assertTrue(List.of(first.id(), second.id()).contains(firstPage.getContent().getFirst().id()));
+        assertTrue(List.of(first.id(), second.id()).contains(secondPage.getContent().getFirst().id()));
     }
 
     @Test
@@ -130,10 +138,15 @@ class RepostServiceTest extends AbstractIntegrationTest {
         RepostReadDto first = repostService.create(createDto(post, createUser()));
         RepostReadDto second = repostService.create(createDto(post, createUser()));
         repostService.create(createDto(anotherPost, createUser()));
-        List<RepostReadDto> result = repostService.findAllByPostId(post.getId());
-        assertEquals(2, result.size());
-        assertTrue(result.stream().map(RepostReadDto::id).toList().containsAll(List.of(first.id(), second.id())));
-        assertTrue(result.stream().allMatch(repost -> post.getId().equals(repost.postId())));
+        Page<RepostReadDto> result = repostService.findAllByPostId(post.getId(), PageRequest.of(0, 1));
+        Page<RepostReadDto> secondPage = repostService.findAllByPostId(post.getId(), PageRequest.of(1, 1));
+        assertEquals(1, result.getNumberOfElements());
+        assertEquals(2, result.getTotalElements());
+        assertTrue(result.hasNext());
+        assertTrue(secondPage.isLast());
+        assertTrue(List.of(first.id(), second.id()).contains(result.getContent().getFirst().id()));
+        assertTrue(List.of(first.id(), second.id()).contains(secondPage.getContent().getFirst().id()));
+        assertTrue(result.getContent().stream().allMatch(repost -> post.getId().equals(repost.postId())));
     }
 
     @Test
@@ -142,10 +155,15 @@ class RepostServiceTest extends AbstractIntegrationTest {
         User user = createUser();
         RepostReadDto first = repostService.create(createDto(createPost(author), user));
         RepostReadDto second = repostService.create(createDto(createPost(author), user));
-        List<RepostReadDto> result = repostService.findAllByUserId(user.getId());
-        assertEquals(2, result.size());
-        assertTrue(result.stream().map(RepostReadDto::id).toList().containsAll(List.of(first.id(), second.id())));
-        assertTrue(result.stream().allMatch(repost -> user.getId().equals(repost.userId())));
+        Page<RepostReadDto> result = repostService.findAllByUserId(user.getId(), PageRequest.of(0, 1));
+        Page<RepostReadDto> secondPage = repostService.findAllByUserId(user.getId(), PageRequest.of(1, 1));
+        assertEquals(1, result.getNumberOfElements());
+        assertEquals(2, result.getTotalElements());
+        assertTrue(result.hasNext());
+        assertTrue(secondPage.isLast());
+        assertTrue(List.of(first.id(), second.id()).contains(result.getContent().getFirst().id()));
+        assertTrue(List.of(first.id(), second.id()).contains(secondPage.getContent().getFirst().id()));
+        assertTrue(result.getContent().stream().allMatch(repost -> user.getId().equals(repost.userId())));
     }
 
     @Test

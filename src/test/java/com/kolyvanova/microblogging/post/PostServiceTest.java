@@ -11,6 +11,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.UUID;
@@ -105,13 +108,16 @@ class PostServiceTest extends AbstractIntegrationTest {
         PostReadDto first = postService.create(createDto(author.getId()));
         PostReadDto second = postService.create(createDto(author.getId()));
 
-        List<PostReadDto> result = postService.findAll();
+        Page<PostReadDto> firstPage = postService.findAll(PageRequest.of(0, 1, Sort.by("content").ascending()));
+        Page<PostReadDto> secondPage = postService.findAll(PageRequest.of(1, 1, Sort.by("content").ascending()));
 
-        assertEquals(2, result.size());
-        assertTrue(result.stream()
-                           .map(PostReadDto::id)
-                           .toList()
-                           .containsAll(List.of(first.id(), second.id())));
+        assertEquals(1, firstPage.getNumberOfElements());
+        assertEquals(2, firstPage.getTotalElements());
+        assertEquals(2, firstPage.getTotalPages());
+        assertTrue(firstPage.hasNext());
+        assertTrue(secondPage.isLast());
+        assertTrue(List.of(first.id(), second.id()).contains(firstPage.getContent().getFirst().id()));
+        assertTrue(List.of(first.id(), second.id()).contains(secondPage.getContent().getFirst().id()));
     }
 
     @Test
@@ -122,15 +128,18 @@ class PostServiceTest extends AbstractIntegrationTest {
         PostReadDto second = postService.create(createDto(author.getId()));
         postService.create(createDto(anotherAuthor.getId()));
 
-        List<PostReadDto> result = postService.findAllByAuthorId(author.getId());
+        Page<PostReadDto> firstPage = postService.findAllByAuthorId(author.getId(),
+                PageRequest.of(0, 1, Sort.by("content").ascending()));
+        Page<PostReadDto> secondPage = postService.findAllByAuthorId(author.getId(),
+                PageRequest.of(1, 1, Sort.by("content").ascending()));
 
-        assertEquals(2, result.size());
-        assertTrue(result.stream()
-                           .map(PostReadDto::id)
-                           .toList()
-                           .containsAll(List.of(first.id(), second.id())));
-        assertTrue(result.stream()
-                           .allMatch(post -> author.getId().equals(post.authorId())));
+        assertEquals(1, firstPage.getNumberOfElements());
+        assertEquals(2, firstPage.getTotalElements());
+        assertTrue(firstPage.hasNext());
+        assertTrue(secondPage.isLast());
+        assertTrue(List.of(first.id(), second.id()).contains(firstPage.getContent().getFirst().id()));
+        assertTrue(List.of(first.id(), second.id()).contains(secondPage.getContent().getFirst().id()));
+        assertTrue(firstPage.getContent().stream().allMatch(post -> author.getId().equals(post.authorId())));
     }
 
     @Test

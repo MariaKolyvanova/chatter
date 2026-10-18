@@ -8,9 +8,10 @@ import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -40,14 +41,12 @@ public class SubscriptionService {
         subscription.setSubscriber(subscriber);
         subscription.setAuthor(author);
 
-        return subscriptionMapper.toReadDto(subscriptionRepository.save(subscription));
+        return subscriptionMapper.toReadDto(subscriptionRepository.saveAndFlush(subscription));
     }
 
     @Transactional(readOnly = true)
-    public List<SubscriptionReadDto> findAll() {
-        return subscriptionRepository.findAll().stream()
-                .map(subscriptionMapper::toReadDto)
-                .toList();
+    public Page<SubscriptionReadDto> findAll(Pageable pageable) {
+        return subscriptionRepository.findAll(pageable).map(subscriptionMapper::toReadDto);
     }
 
     @Transactional(readOnly = true)
@@ -59,17 +58,13 @@ public class SubscriptionService {
     }
 
     @Transactional(readOnly = true)
-    public List<SubscriptionReadDto> findAllBySubscriberId(UUID subscriberId) {
-        return subscriptionRepository.findAllBySubscriberId(subscriberId).stream()
-                .map(subscriptionMapper::toReadDto)
-                .toList();
+    public Page<SubscriptionReadDto> findAllBySubscriberId(UUID subscriberId, Pageable pageable) {
+        return subscriptionRepository.findAllBySubscriberId(subscriberId, pageable).map(subscriptionMapper::toReadDto);
     }
 
     @Transactional(readOnly = true)
-    public List<SubscriptionReadDto> findAllByAuthorId(UUID authorId) {
-        return subscriptionRepository.findAllByAuthorId(authorId).stream()
-                .map(subscriptionMapper::toReadDto)
-                .toList();
+    public Page<SubscriptionReadDto> findAllByAuthorId(UUID authorId, Pageable pageable) {
+        return subscriptionRepository.findAllByAuthorId(authorId, pageable).map(subscriptionMapper::toReadDto);
     }
 
     @Transactional

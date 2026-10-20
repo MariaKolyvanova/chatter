@@ -9,7 +9,7 @@ import java.time.LocalDate;
 
 public record UserUpdateDto(
         @NotBlank
-        @Size(max = 50)
+        @Size(max = 50, min = 3)
         String username,
 
         @NotBlank
@@ -18,7 +18,7 @@ public record UserUpdateDto(
         String email,
 
         @NotBlank
-        @Size(max = 100)
+        @Size(max = 100, min = 3)
         String displayName,
 
         String bio,

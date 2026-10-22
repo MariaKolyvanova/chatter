@@ -20,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -60,6 +61,7 @@ class LikeServiceTest extends AbstractIntegrationTest {
                 .displayName("Like test user")
                 .role(UserRole.USER)
                 .status(UserStatus.ACTIVE)
+                .createdAt(Instant.now())
                 .build();
 
         return userRepository.saveAndFlush(user);

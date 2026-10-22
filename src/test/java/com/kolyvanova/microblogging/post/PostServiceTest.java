@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -51,6 +52,7 @@ class PostServiceTest extends AbstractIntegrationTest {
                 .displayName("Post test user")
                 .role(UserRole.USER)
                 .status(UserStatus.ACTIVE)
+                .createdAt(Instant.now())
                 .build();
         countUser++;
         return userRepository.saveAndFlush(user);
@@ -148,7 +150,7 @@ class PostServiceTest extends AbstractIntegrationTest {
         PostReadDto created = postService.create(createDto(author.getId()));
         PostUpdateDto dto = new PostUpdateDto("Updated content", PostCategory.EDUCATION);
 
-        PostReadDto result = postService.update(created.id(), dto);
+        PostReadDto result = postService.update(created.id(), author.getId(), dto);
 
         assertEquals(dto.content(), result.content());
         assertEquals(dto.category(), result.category());
@@ -161,7 +163,7 @@ class PostServiceTest extends AbstractIntegrationTest {
         User author = createUser();
         PostReadDto created = postService.create(createDto(author.getId()));
 
-        postService.delete(created.id());
+        postService.delete(created.id(), author.getId());
 
         assertFalse(postRepository.existsById(created.id()));
     }

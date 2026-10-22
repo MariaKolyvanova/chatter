@@ -5,6 +5,7 @@ import com.kolyvanova.microblogging.exception.UserNotFoundException;
 import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -52,9 +53,10 @@ public class PostService {
     }
 
     @Transactional
-    public PostReadDto update(UUID id, PostUpdateDto dto) {
-        Post post = postRepository.findById(id)
+    public PostReadDto update(UUID id, UUID authorId, PostUpdateDto dto) {
+        Post post = postRepository.findByIdAndAuthorId(id, authorId)
                 .orElseThrow(() -> new PostNotFoundException(id));
+        //или? .orElseThrow(() -> new AccessDeniedException("not the author"));
 
         postMapper.updateEntity(dto, post);
         postRepository.save(post);
@@ -63,10 +65,21 @@ public class PostService {
     }
 
     @Transactional
-    public void delete(UUID id) {
-        Post post = postRepository.findById(id)
+    public void delete(UUID id, UUID authorId) {
+        Post post = postRepository.findByIdAndAuthorId(id,authorId)
                 .orElseThrow(() -> new PostNotFoundException(id));
+        //или? .orElseThrow(() -> new AccessDeniedException("not the author"));
 
         postRepository.delete(post);
     }
+
+    @PreAuthorize("hasRole('MODERATOR' || 'ADMIN')")
+    public void hide(UUID id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new PostNotFoundException(id));
+
+        post.setStatus(PostStatus.HIDDEN);
+        postRepository.save(post);
+    }
+
 }

@@ -11,6 +11,7 @@ public interface UserMapper {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @BeanMapping(builder = @Builder(disableBuilder = true))
     User toEntity(UserCreateDto dto);
 
     @Mapping(target = "id", ignore = true)

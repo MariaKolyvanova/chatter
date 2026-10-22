@@ -1,5 +1,6 @@
 package com.kolyvanova.microblogging.post;
 
+import com.kolyvanova.microblogging.security.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/posts")
 public class PostRestController {
     private final PostService postService;
+    private final CurrentUser currentUser;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -41,12 +43,12 @@ public class PostRestController {
 
     @PutMapping("/{id}")
     public PostReadDto update(@PathVariable UUID id, @Valid @RequestBody PostUpdateDto dto) {
-        return postService.update(id, dto);
+        return postService.update(id, currentUser.id(), dto);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
-        postService.delete(id);
+        postService.delete(id, currentUser.id());
     }
 }

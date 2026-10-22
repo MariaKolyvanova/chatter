@@ -20,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,7 +50,7 @@ class RepostServiceTest extends AbstractIntegrationTest {
         return userRepository.saveAndFlush(User.builder()
                 .username("repost_test_" + suffix).email(suffix + "@mail.test")
                 .passwordHash("test-password-hash").displayName("Repost test user")
-                .role(UserRole.USER).status(UserStatus.ACTIVE).build());
+                .role(UserRole.USER).status(UserStatus.ACTIVE).createdAt(Instant.now()).build());
     }
 
     private Post createPost(User author) {

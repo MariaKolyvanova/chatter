@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,7 +44,7 @@ class SubscriptionServiceTest extends AbstractIntegrationTest {
         return userRepository.saveAndFlush(User.builder()
                 .username("sub_" + suffix).email(suffix + "@mail.test")
                 .passwordHash("test-password-hash").displayName("Subscription test user")
-                .role(UserRole.USER).status(UserStatus.ACTIVE).build());
+                .role(UserRole.USER).status(UserStatus.ACTIVE).createdAt(Instant.now()).build());
     }
 
     private SubscriptionCreateDto createDto(User subscriber, User author) {

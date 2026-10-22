@@ -20,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -60,6 +61,7 @@ class CommentServiceTest extends AbstractIntegrationTest {
                 .displayName("Comment test user")
                 .role(UserRole.USER)
                 .status(UserStatus.ACTIVE)
+                .createdAt(Instant.now())
                 .build();
 
         return userRepository.saveAndFlush(user);

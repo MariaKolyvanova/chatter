@@ -1,5 +1,6 @@
 package com.kolyvanova.microblogging.repost;
 
+import com.kolyvanova.microblogging.security.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,15 +26,17 @@ import java.util.UUID;
 public class RepostRestController {
 
     private final RepostService repostService;
+    private final CurrentUser currentUser;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public RepostReadDto create(@Valid @RequestBody RepostCreateDto dto) {
-        return repostService.create(dto);
+        return repostService.create(dto, currentUser.id());
     }
 
     @GetMapping
-    public Page<RepostReadDto> findAll(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+    public Page<RepostReadDto> findAll(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return repostService.findAll(pageable);
     }
 
@@ -43,20 +46,22 @@ public class RepostRestController {
     }
 
     @GetMapping(params = "postId")
-    public Page<RepostReadDto> findAllByPostId(@RequestParam UUID postId,
-                                               @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+    public Page<RepostReadDto> findAllByPostId(
+            @RequestParam UUID postId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return repostService.findAllByPostId(postId, pageable);
     }
 
     @GetMapping(params = "userId")
-    public Page<RepostReadDto> findAllByUserId(@RequestParam UUID userId,
-                                               @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+    public Page<RepostReadDto> findAllByUserId(
+            @RequestParam UUID userId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return repostService.findAllByUserId(userId, pageable);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
-        repostService.delete(id);
+        repostService.delete(id, currentUser.id());
     }
 }

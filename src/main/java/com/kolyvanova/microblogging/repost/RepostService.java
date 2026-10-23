@@ -6,6 +6,7 @@ import com.kolyvanova.microblogging.exception.RepostNotFoundException;
 import com.kolyvanova.microblogging.exception.UserNotFoundException;
 import com.kolyvanova.microblogging.post.Post;
 import com.kolyvanova.microblogging.post.PostRepository;
+import com.kolyvanova.microblogging.post.PostStatus;
 import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,13 +27,12 @@ public class RepostService {
     private final RepostMapper repostMapper;
 
     @Transactional
-    public RepostReadDto create(RepostCreateDto dto) {
-        Post post = postRepository.findById(dto.postId())
+    public RepostReadDto create(RepostCreateDto dto, UUID userId) {
+        Post post = postRepository.findByIdAndStatus(dto.postId(), PostStatus.PUBLISHED)
                 .orElseThrow(() -> new PostNotFoundException(dto.postId()));
-        User user = userRepository.findById(dto.userId())
-                .orElseThrow(() -> new UserNotFoundException(dto.userId()));
-
-        if (repostRepository.existsByPostIdAndUserId(dto.postId(), dto.userId())) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+        if (repostRepository.existsByPostIdAndUserId(dto.postId(), userId)) {
             throw new RepostAlreadyExistsException();
         }
 
@@ -67,8 +67,8 @@ public class RepostService {
     }
 
     @Transactional
-    public void delete(UUID id) {
-        Repost repost = repostRepository.findById(id)
+    public void delete(UUID id, UUID userId) {
+        Repost repost = repostRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new RepostNotFoundException(id));
 
         repostRepository.delete(repost);

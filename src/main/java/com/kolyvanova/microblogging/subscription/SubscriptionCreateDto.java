@@ -6,9 +6,6 @@ import java.util.UUID;
 
 public record SubscriptionCreateDto(
         @NotNull
-        UUID subscriberId,
-
-        @NotNull
         UUID authorId
 ) {
 }

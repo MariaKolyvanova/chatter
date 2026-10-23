@@ -47,15 +47,15 @@ class SubscriptionServiceTest extends AbstractIntegrationTest {
                 .role(UserRole.USER).status(UserStatus.ACTIVE).createdAt(Instant.now()).build());
     }
 
-    private SubscriptionCreateDto createDto(User subscriber, User author) {
-        return new SubscriptionCreateDto(subscriber.getId(), author.getId());
+    private SubscriptionCreateDto createDto(User author) {
+        return new SubscriptionCreateDto(author.getId());
     }
 
     @Test
     void create() {
         User subscriber = createUser();
         User author = createUser();
-        SubscriptionReadDto result = subscriptionService.create(createDto(subscriber, author));
+        SubscriptionReadDto result = subscriptionService.create(createDto(author), subscriber.getId());
         assertNotNull(result.id());
         assertEquals(subscriber.getId(), result.subscriberId());
         assertEquals(author.getId(), result.authorId());
@@ -66,37 +66,37 @@ class SubscriptionServiceTest extends AbstractIntegrationTest {
     void createDuplicateSubscription() {
         User subscriber = createUser();
         User author = createUser();
-        SubscriptionCreateDto dto = createDto(subscriber, author);
-        subscriptionService.create(dto);
-        assertThrows(SubscriptionAlreadyExistsException.class, () -> subscriptionService.create(dto));
+        SubscriptionCreateDto dto = createDto(author);
+        subscriptionService.create(dto, subscriber.getId());
+        assertThrows(SubscriptionAlreadyExistsException.class, () -> subscriptionService.create(dto, subscriber.getId()));
     }
 
     @Test
     void createFailsWhenUserSubscribesToSelf() {
         User user = createUser();
         assertThrows(SelfSubscriptionException.class,
-                () -> subscriptionService.create(new SubscriptionCreateDto(user.getId(), user.getId())));
+                () -> subscriptionService.create(new SubscriptionCreateDto(user.getId()), user.getId()));
     }
 
     @Test
     void createFailsWhenSubscriberDoesNotExist() {
         User author = createUser();
         assertThrows(UserNotFoundException.class,
-                () -> subscriptionService.create(new SubscriptionCreateDto(UUID.randomUUID(), author.getId())));
+                () -> subscriptionService.create(new SubscriptionCreateDto(author.getId()), UUID.randomUUID()));
     }
 
     @Test
     void createFailsWhenAuthorDoesNotExist() {
         User subscriber = createUser();
         assertThrows(UserNotFoundException.class,
-                () -> subscriptionService.create(new SubscriptionCreateDto(subscriber.getId(), UUID.randomUUID())));
+                () -> subscriptionService.create(new SubscriptionCreateDto(UUID.randomUUID()), subscriber.getId()));
     }
 
     @Test
     void findById() {
         User subscriber = createUser();
         User author = createUser();
-        SubscriptionReadDto created = subscriptionService.create(createDto(subscriber, author));
+        SubscriptionReadDto created = subscriptionService.create(createDto(author), subscriber.getId());
         SubscriptionReadDto result = subscriptionService.findById(created.id());
         assertEquals(created.id(), result.id());
         assertEquals(subscriber.getId(), result.subscriberId());
@@ -111,8 +111,8 @@ class SubscriptionServiceTest extends AbstractIntegrationTest {
 
     @Test
     void findAll() {
-        SubscriptionReadDto first = subscriptionService.create(createDto(createUser(), createUser()));
-        SubscriptionReadDto second = subscriptionService.create(createDto(createUser(), createUser()));
+        SubscriptionReadDto first = subscriptionService.create(createDto(createUser()), createUser().getId());
+        SubscriptionReadDto second = subscriptionService.create(createDto(createUser()), createUser().getId());
         Page<SubscriptionReadDto> firstPage = subscriptionService.findAll(PageRequest.of(0, 1));
         Page<SubscriptionReadDto> secondPage = subscriptionService.findAll(PageRequest.of(1, 1));
         assertEquals(1, firstPage.getNumberOfElements());
@@ -127,9 +127,9 @@ class SubscriptionServiceTest extends AbstractIntegrationTest {
     @Test
     void findAllBySubscriberId() {
         User subscriber = createUser();
-        SubscriptionReadDto first = subscriptionService.create(createDto(subscriber, createUser()));
-        SubscriptionReadDto second = subscriptionService.create(createDto(subscriber, createUser()));
-        subscriptionService.create(createDto(createUser(), createUser()));
+        SubscriptionReadDto first = subscriptionService.create(createDto(createUser()), subscriber.getId());
+        SubscriptionReadDto second = subscriptionService.create(createDto(createUser()), subscriber.getId());
+        subscriptionService.create(createDto(createUser()), createUser().getId());
         Page<SubscriptionReadDto> result = subscriptionService.findAllBySubscriberId(subscriber.getId(), PageRequest.of(0, 1));
         Page<SubscriptionReadDto> secondPage = subscriptionService.findAllBySubscriberId(subscriber.getId(), PageRequest.of(1, 1));
         assertEquals(1, result.getNumberOfElements());
@@ -144,9 +144,9 @@ class SubscriptionServiceTest extends AbstractIntegrationTest {
     @Test
     void findAllByAuthorId() {
         User author = createUser();
-        SubscriptionReadDto first = subscriptionService.create(createDto(createUser(), author));
-        SubscriptionReadDto second = subscriptionService.create(createDto(createUser(), author));
-        subscriptionService.create(createDto(createUser(), createUser()));
+        SubscriptionReadDto first = subscriptionService.create(createDto(author), createUser().getId());
+        SubscriptionReadDto second = subscriptionService.create(createDto(author), createUser().getId());
+        subscriptionService.create(createDto(createUser()), createUser().getId());
         Page<SubscriptionReadDto> result = subscriptionService.findAllByAuthorId(author.getId(), PageRequest.of(0, 1));
         Page<SubscriptionReadDto> secondPage = subscriptionService.findAllByAuthorId(author.getId(), PageRequest.of(1, 1));
         assertEquals(1, result.getNumberOfElements());
@@ -160,8 +160,10 @@ class SubscriptionServiceTest extends AbstractIntegrationTest {
 
     @Test
     void deleteRemovesSubscription() {
-        SubscriptionReadDto created = subscriptionService.create(createDto(createUser(), createUser()));
-        subscriptionService.delete(created.id());
+        User subscriber = createUser();
+        User author = createUser();
+        SubscriptionReadDto created = subscriptionService.create(createDto(author), subscriber.getId());
+        subscriptionService.delete(subscriber.getId(), author.getId());
         assertFalse(subscriptionRepository.existsById(created.id()));
     }
 }

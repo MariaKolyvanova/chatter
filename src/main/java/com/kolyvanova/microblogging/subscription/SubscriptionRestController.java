@@ -1,5 +1,6 @@
 package com.kolyvanova.microblogging.subscription;
 
+import com.kolyvanova.microblogging.security.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,15 +26,17 @@ import java.util.UUID;
 public class SubscriptionRestController {
 
     private final SubscriptionService subscriptionService;
+    private final CurrentUser currentUser;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public SubscriptionReadDto create(@Valid @RequestBody SubscriptionCreateDto dto) {
-        return subscriptionService.create(dto);
+        return subscriptionService.create(dto, currentUser.id());
     }
 
     @GetMapping
-    public Page<SubscriptionReadDto> findAll(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+    public Page<SubscriptionReadDto> findAll(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return subscriptionService.findAll(pageable);
     }
 
@@ -43,20 +46,22 @@ public class SubscriptionRestController {
     }
 
     @GetMapping(params = "subscriberId")
-    public Page<SubscriptionReadDto> findAllBySubscriberId(@RequestParam UUID subscriberId,
-                                                          @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+    public Page<SubscriptionReadDto> findAllBySubscriberId(
+            @RequestParam UUID subscriberId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return subscriptionService.findAllBySubscriberId(subscriberId, pageable);
     }
 
     @GetMapping(params = "authorId")
-    public Page<SubscriptionReadDto> findAllByAuthorId(@RequestParam UUID authorId,
-                                                       @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+    public Page<SubscriptionReadDto> findAllByAuthorId(
+            @RequestParam UUID authorId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return subscriptionService.findAllByAuthorId(authorId, pageable);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping(params = "authorId")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable UUID id) {
-        subscriptionService.delete(id);
+    public void delete(@RequestParam UUID authorId) {
+        subscriptionService.delete(currentUser.id(), authorId);
     }
 }

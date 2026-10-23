@@ -16,24 +16,22 @@ import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
+@Transactional
 public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
     private final SubscriptionMapper subscriptionMapper;
 
-    @Transactional
-    public SubscriptionReadDto create(SubscriptionCreateDto dto) {
-        if (dto.subscriberId().equals(dto.authorId())) {
-            throw new SelfSubscriptionException();
-        }
-
-        User subscriber = userRepository.findById(dto.subscriberId())
-                .orElseThrow(() -> new UserNotFoundException(dto.subscriberId()));
+    public SubscriptionReadDto create(SubscriptionCreateDto dto, UUID subscriberId) {
+        User subscriber = userRepository.findById(subscriberId)
+                .orElseThrow(() -> new UserNotFoundException(subscriberId));
         User author = userRepository.findById(dto.authorId())
                 .orElseThrow(() -> new UserNotFoundException(dto.authorId()));
-
-        if (subscriptionRepository.existsBySubscriberIdAndAuthorId(dto.subscriberId(), dto.authorId())) {
+        if (subscriberId.equals(dto.authorId())) {
+            throw new SelfSubscriptionException();
+        }
+        if (subscriptionRepository.existsBySubscriberIdAndAuthorId(subscriberId, dto.authorId())) {
             throw new SubscriptionAlreadyExistsException();
         }
 
@@ -67,10 +65,9 @@ public class SubscriptionService {
         return subscriptionRepository.findAllByAuthorId(authorId, pageable).map(subscriptionMapper::toReadDto);
     }
 
-    @Transactional
-    public void delete(UUID id) {
-        Subscription subscription = subscriptionRepository.findById(id)
-                .orElseThrow(() -> new SubscriptionNotFoundException(id));
+    public void delete(UUID subscriberId, UUID authorId) {
+        Subscription subscription = subscriptionRepository.findBySubscriberIdAndAuthorId(subscriberId, authorId)
+                .orElseThrow(() -> new SubscriptionNotFoundException(subscriberId, authorId));
 
         subscriptionRepository.delete(subscription);
     }

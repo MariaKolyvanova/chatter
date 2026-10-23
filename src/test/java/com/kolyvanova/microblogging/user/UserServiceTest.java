@@ -88,10 +88,21 @@ class UserServiceTest extends AbstractIntegrationTest {
     @Test
     void findById() {
         UserReadDto created = userService.create(createDto("ivan_ivanov", "ivan@mail.ru"));
-        UserReadDto result = userService.findById(created.id());
+        UserPublicReadDto result = userService.findById(created.id());
 
         assertEquals(created.id(), result.id());
         assertEquals(created.username(), result.username());
+        assertEquals(created.displayName(), result.displayName());
+    }
+
+    @Test
+    void findMeReturnsPrivateProfile() {
+        UserReadDto created = userService.create(createDto("ivan_ivanov", "ivan@mail.ru"));
+        UserReadDto result = userService.findMe(created.id());
+
+        assertEquals(created.id(), result.id());
+        assertEquals(created.email(), result.email());
+        assertEquals(created.birthDate(), result.birthDate());
     }
 
     @Test
@@ -99,8 +110,8 @@ class UserServiceTest extends AbstractIntegrationTest {
         UserReadDto first = userService.create(createDto("ivan_ivanov", "ivan@mail.ru"));
         UserReadDto second = userService.create(createDto("peter_petrov", "peter@mail.ru"));
 
-        Page<UserReadDto> firstPage = userService.findAll(PageRequest.of(0, 1));
-        Page<UserReadDto> secondPage = userService.findAll(PageRequest.of(1, 1));
+        Page<UserPublicReadDto> firstPage = userService.findAll(PageRequest.of(0, 1));
+        Page<UserPublicReadDto> secondPage = userService.findAll(PageRequest.of(1, 1));
 
         assertEquals(1, firstPage.getNumberOfElements());
         assertEquals(2, firstPage.getTotalElements());

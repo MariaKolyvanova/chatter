@@ -23,4 +23,6 @@ public interface UserMapper {
     void updateEntity(UserUpdateDto dto, @MappingTarget User user);
 
     UserReadDto toReadDto(User user);
+
+    UserPublicReadDto toPublicDto(User user);
 }

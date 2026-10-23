@@ -36,16 +36,25 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserReadDto findById(UUID id) {
+    public Page<UserPublicReadDto> findAll(Pageable pageable) {
+        return userRepository.findAll(pageable)
+                .map(userMapper::toPublicDto);
+    }
+
+    @Transactional(readOnly = true)
+    public UserPublicReadDto findById(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+
+        return userMapper.toPublicDto(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserReadDto findMe(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
 
         return userMapper.toReadDto(user);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<UserReadDto> findAll(Pageable pageable) {
-        return userRepository.findAll(pageable).map(userMapper::toReadDto);
     }
 
     @Transactional

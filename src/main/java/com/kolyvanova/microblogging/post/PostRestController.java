@@ -22,22 +22,30 @@ public class PostRestController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PostReadDto create(@Valid @RequestBody PostCreateDto dto) {
-        return postService.create(dto);
+        return postService.create(dto, currentUser.id());
     }
 
     @GetMapping()
-    public Page<PostReadDto> findAll(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+    public Page<PostReadDto> findAll(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return postService.findAll(pageable);
+    }
+
+    @GetMapping("/me")
+    public Page<PostReadDto> findMine(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+        return postService.findMine(currentUser.id(), pageable);
     }
 
     @GetMapping("/{id}")
     public PostReadDto findById(@PathVariable UUID id) {
-        return postService.findById(id);
+        return postService.findById(id, currentUser.id(), currentUser.canModerate());
     }
 
     @GetMapping(params = "authorId")
-    public Page<PostReadDto> findAllByAuthorId(@RequestParam UUID authorId,
-                                               @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+    public Page<PostReadDto> findAllByAuthorId(
+            @RequestParam UUID authorId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return postService.findAllByAuthorId(authorId, pageable);
     }
 
@@ -50,5 +58,17 @@ public class PostRestController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
         postService.delete(id, currentUser.id());
+    }
+
+    @PutMapping("/{id}/hide")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void hide(@PathVariable UUID id) {
+        postService.hide(id);
+    }
+
+    @PutMapping("/{id}/show")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void show(@PathVariable UUID id) {
+        postService.show(id);
     }
 }

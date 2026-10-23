@@ -22,6 +22,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -58,22 +59,24 @@ class PostServiceTest extends AbstractIntegrationTest {
         return userRepository.saveAndFlush(user);
     }
 
-    private PostCreateDto createDto(UUID id) {
-        return new PostCreateDto(id, "post", PostCategory.GENERAL);
+    private PostCreateDto createDto(String content) {
+        return new PostCreateDto(content, PostCategory.GENERAL);
     }
 
     @Test
     void create() {
         User author = createUser();
-        PostCreateDto dto = createDto(author.getId());
+        PostCreateDto dto = createDto("post");
 
-        PostReadDto result = postService.create(dto);
+        PostReadDto result = postService.create(dto, author.getId());
 
         assertNotNull(result.id());
         assertEquals(author.getId(), result.authorId());
         assertEquals(dto.content(), result.content());
         assertEquals(dto.category(), result.category());
         assertEquals(PostStatus.PUBLISHED, result.status());
+        assertNull(result.replyToId());
+        assertEquals(result.id(), result.conversationId());
 
         Post savedPost = postRepository.findById(result.id()).orElseThrow();
         assertEquals(author.getId(), savedPost.getAuthor().getId());
@@ -81,17 +84,17 @@ class PostServiceTest extends AbstractIntegrationTest {
 
     @Test
     void createFailsWhenAuthorDoesNotExist() {
-        PostCreateDto dto = createDto(UUID.randomUUID());
+        PostCreateDto dto = createDto("post");
 
-        assertThrows(UserNotFoundException.class, () -> postService.create(dto));
+        assertThrows(UserNotFoundException.class, () -> postService.create(dto, UUID.randomUUID()));
     }
 
     @Test
     void findById() {
         User author = createUser();
-        PostReadDto created = postService.create(createDto(author.getId()));
+        PostReadDto created = postService.create(createDto("post"), author.getId());
 
-        PostReadDto result = postService.findById(created.id());
+        PostReadDto result = postService.findById(created.id(), author.getId(), false);
 
         assertEquals(created.id(), result.id());
         assertEquals(created.content(), result.content());
@@ -101,14 +104,14 @@ class PostServiceTest extends AbstractIntegrationTest {
     @Test
     void findByIdThrowsWhenPostDoesNotExist() {
         assertThrows(PostNotFoundException.class,
-                     () -> postService.findById(UUID.randomUUID()));
+                     () -> postService.findById(UUID.randomUUID(), UUID.randomUUID(), false));
     }
 
     @Test
-    void findAll() {
+    void findAllPublished() {
         User author = createUser();
-        PostReadDto first = postService.create(createDto(author.getId()));
-        PostReadDto second = postService.create(createDto(author.getId()));
+        PostReadDto first = postService.create(createDto("first"), author.getId());
+        PostReadDto second = postService.create(createDto("second"), author.getId());
 
         Page<PostReadDto> firstPage = postService.findAll(PageRequest.of(0, 1, Sort.by("content").ascending()));
         Page<PostReadDto> secondPage = postService.findAll(PageRequest.of(1, 1, Sort.by("content").ascending()));
@@ -123,12 +126,12 @@ class PostServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void findAllByAuthorId() {
+    void findAllPublishedByAuthorId() {
         User author = createUser();
         User anotherAuthor = createUser();
-        PostReadDto first = postService.create(createDto(author.getId()));
-        PostReadDto second = postService.create(createDto(author.getId()));
-        postService.create(createDto(anotherAuthor.getId()));
+        PostReadDto first = postService.create(createDto("first"), author.getId());
+        PostReadDto second = postService.create(createDto("second"), author.getId());
+        postService.create(createDto("other"), anotherAuthor.getId());
 
         Page<PostReadDto> firstPage = postService.findAllByAuthorId(author.getId(),
                 PageRequest.of(0, 1, Sort.by("content").ascending()));
@@ -147,7 +150,7 @@ class PostServiceTest extends AbstractIntegrationTest {
     @Test
     void update() {
         User author = createUser();
-        PostReadDto created = postService.create(createDto(author.getId()));
+        PostReadDto created = postService.create(createDto("post"), author.getId());
         PostUpdateDto dto = new PostUpdateDto("Updated content", PostCategory.EDUCATION);
 
         PostReadDto result = postService.update(created.id(), author.getId(), dto);
@@ -161,10 +164,28 @@ class PostServiceTest extends AbstractIntegrationTest {
     @Test
     void delete() {
         User author = createUser();
-        PostReadDto created = postService.create(createDto(author.getId()));
+        PostReadDto created = postService.create(createDto("post"), author.getId());
 
         postService.delete(created.id(), author.getId());
 
         assertFalse(postRepository.existsById(created.id()));
+    }
+
+    @Test
+    void hiddenPostIsVisibleToAuthorAndModeratorOnly() {
+        User author = createUser();
+        User other = createUser();
+        PostReadDto created = postService.create(createDto("hidden"), author.getId());
+        Post post = postRepository.findById(created.id()).orElseThrow();
+        post.setStatus(PostStatus.HIDDEN);
+        postRepository.saveAndFlush(post);
+
+        assertTrue(postService.findAll(PageRequest.of(0, 10)).isEmpty());
+        assertTrue(postService.findAllByAuthorId(author.getId(), PageRequest.of(0, 10)).isEmpty());
+        assertEquals(1, postService.findMine(author.getId(), PageRequest.of(0, 10)).getTotalElements());
+        assertEquals(PostStatus.HIDDEN, postService.findById(created.id(), author.getId(), false).status());
+        assertEquals(PostStatus.HIDDEN, postService.findById(created.id(), other.getId(), true).status());
+        assertThrows(PostNotFoundException.class,
+                () -> postService.findById(created.id(), other.getId(), false));
     }
 }

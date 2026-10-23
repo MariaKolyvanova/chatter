@@ -5,6 +5,7 @@ import com.kolyvanova.microblogging.exception.UserNotFoundException;
 import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+@Transactional
 @RequiredArgsConstructor
 @Service
 public class PostService {
@@ -20,43 +22,57 @@ public class PostService {
     private final PostMapper postMapper;
     private final UserRepository userRepository;
 
-    @Transactional
-    public PostReadDto create(PostCreateDto dto) {
-        User author = userRepository.findById(dto.authorId())
-                .orElseThrow(() -> new UserNotFoundException(dto.authorId()));
+    public PostReadDto create(PostCreateDto dto, UUID userId) {
+        User author = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         Post post = postMapper.toEntity(dto);
         post.setAuthor(author);
         post.setStatus(PostStatus.PUBLISHED);
 
         Post savedPost = postRepository.save(post);
+        savedPost.setConversation(savedPost);
 
         return postMapper.toReadDto(savedPost);
     }
 
     @Transactional(readOnly = true)
     public Page<PostReadDto> findAll(Pageable pageable) {
-        return postRepository.findAll(pageable).map(postMapper::toReadDto);
+        return postRepository.findAllByStatus(PostStatus.PUBLISHED, pageable)
+                .map(postMapper::toReadDto);
     }
 
     @Transactional(readOnly = true)
-    public PostReadDto findById(UUID id) {
+    public Page<PostReadDto> findAllByAuthorId(UUID authorId, Pageable pageable) {
+        return postRepository.findAllByAuthorIdAndStatus(authorId, PostStatus.PUBLISHED, pageable)
+                .map(postMapper::toReadDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PostReadDto> findMine(UUID authorId, Pageable pageable) {
+        return postRepository.findAllByAuthorId(authorId, pageable)
+                .map(postMapper::toReadDto);
+    }
+
+    @Transactional(readOnly = true)
+    public PostReadDto findById(UUID id, UUID viewerId, boolean moderator) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new PostNotFoundException(id));
+
+        boolean published = post.getStatus() == PostStatus.PUBLISHED;
+        boolean own = post.getAuthor().getId().equals(viewerId);
+        if (!published && !own && !moderator) {
+            throw new PostNotFoundException(id);
+        }
 
         return postMapper.toReadDto(post);
     }
 
-    @Transactional(readOnly = true)
-    public Page<PostReadDto> findAllByAuthorId(UUID id, Pageable pageable) {
-        return postRepository.findAllByAuthorId(id, pageable).map(postMapper::toReadDto);
-    }
-
-    @Transactional
     public PostReadDto update(UUID id, UUID authorId, PostUpdateDto dto) {
-        Post post = postRepository.findByIdAndAuthorId(id, authorId)
+        Post post = postRepository.findById(id)
                 .orElseThrow(() -> new PostNotFoundException(id));
-        //или? .orElseThrow(() -> new AccessDeniedException("not the author"));
+        if (!post.getAuthor().getId().equals(authorId))
+            throw new AccessDeniedException("not the author");
 
         postMapper.updateEntity(dto, post);
         postRepository.save(post);
@@ -64,16 +80,16 @@ public class PostService {
         return postMapper.toReadDto(post);
     }
 
-    @Transactional
     public void delete(UUID id, UUID authorId) {
-        Post post = postRepository.findByIdAndAuthorId(id,authorId)
+        Post post = postRepository.findById(id)
                 .orElseThrow(() -> new PostNotFoundException(id));
-        //или? .orElseThrow(() -> new AccessDeniedException("not the author"));
+        if (!post.getAuthor().getId().equals(authorId))
+            throw new AccessDeniedException("not the author");
 
         postRepository.delete(post);
     }
 
-    @PreAuthorize("hasRole('MODERATOR' || 'ADMIN')")
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     public void hide(UUID id) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new PostNotFoundException(id));
@@ -82,4 +98,11 @@ public class PostService {
         postRepository.save(post);
     }
 
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
+    public void show(UUID id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new PostNotFoundException(id));
+        post.setStatus(PostStatus.PUBLISHED);
+        postRepository.save(post);
+    }
 }

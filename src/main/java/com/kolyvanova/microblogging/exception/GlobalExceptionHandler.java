@@ -28,7 +28,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             PostNotFoundException.class,
             LikeNotFoundException.class,
             SubscriptionNotFoundException.class,
-            CommentNotFoundException.class,
             RepostNotFoundException.class
     })
     public ResponseEntity<ApiErrorResponse> notFoundHandler(RuntimeException exception, HttpServletRequest request) {

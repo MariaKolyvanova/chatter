@@ -1,5 +1,6 @@
 package com.kolyvanova.microblogging.like;
 
+import com.kolyvanova.microblogging.security.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,11 +26,12 @@ import java.util.UUID;
 public class LikeRestController {
 
     private final LikeService likeService;
+    private final CurrentUser currentUser;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public LikeReadDto create(@Valid @RequestBody LikeCreateDto dto) {
-        return likeService.create(dto);
+        return likeService.create(dto, currentUser.id());
     }
 
     @GetMapping
@@ -40,14 +42,14 @@ public class LikeRestController {
 
     @GetMapping("/{id}")
     public LikeReadDto findById(@PathVariable UUID id) {
-        return likeService.findById(id);
+        return likeService.findById(id, currentUser.id(), currentUser.canModerate());
     }
 
     @GetMapping(params = "postId")
     public Page<LikeReadDto> findAllByPostId(@RequestParam UUID postId,
                                              @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC)
                                              Pageable pageable) {
-        return likeService.findAllByPostId(postId, pageable);
+        return likeService.findAllByPostId(postId, currentUser.id(), currentUser.canModerate(), pageable);
     }
 
     @GetMapping(params = "userId")
@@ -57,9 +59,8 @@ public class LikeRestController {
         return likeService.findAllByUserId(userId, pageable);
     }
 
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable UUID id) {
-        likeService.delete(id);
+    @DeleteMapping(params = "postId")
+    public void delete(@RequestParam UUID postId) {
+        likeService.delete(currentUser.id(), postId);
     }
 }

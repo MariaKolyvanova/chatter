@@ -78,8 +78,8 @@ class LikeServiceTest extends AbstractIntegrationTest {
         return postRepository.saveAndFlush(post);
     }
 
-    private LikeCreateDto createDto(Post post, User user) {
-        return new LikeCreateDto(post.getId(), user.getId());
+    private LikeCreateDto createDto(Post post) {
+        return new LikeCreateDto(post.getId());
     }
 
     @Test
@@ -88,7 +88,7 @@ class LikeServiceTest extends AbstractIntegrationTest {
         User user = createUser();
         Post post = createPost(author);
 
-        LikeReadDto result = likeService.create(createDto(post, user));
+        LikeReadDto result = likeService.create(createDto(post), user.getId());
 
         assertNotNull(result.id());
         assertEquals(post.getId(), result.postId());
@@ -100,10 +100,10 @@ class LikeServiceTest extends AbstractIntegrationTest {
         User author = createUser();
         User user = createUser();
         Post post = createPost(author);
-        LikeCreateDto dto = createDto(post, user);
-        likeService.create(dto);
+        LikeCreateDto dto = createDto(post);
+        likeService.create(dto, user.getId());
 
-        assertThrows(LikeAlreadyExistsException.class, () -> likeService.create(dto));
+        assertThrows(LikeAlreadyExistsException.class, () -> likeService.create(dto, user.getId()));
     }
 
     @Test
@@ -111,7 +111,7 @@ class LikeServiceTest extends AbstractIntegrationTest {
         User user = createUser();
 
         assertThrows(PostNotFoundException.class,
-                () -> likeService.create(new LikeCreateDto(UUID.randomUUID(), user.getId())));
+                () -> likeService.create(new LikeCreateDto(UUID.randomUUID()), user.getId()));
     }
 
     @Test
@@ -120,7 +120,7 @@ class LikeServiceTest extends AbstractIntegrationTest {
         Post post = createPost(author);
 
         assertThrows(UserNotFoundException.class,
-                () -> likeService.create(new LikeCreateDto(post.getId(), UUID.randomUUID())));
+                () -> likeService.create(new LikeCreateDto(post.getId()), UUID.randomUUID()));
     }
 
     @Test
@@ -128,9 +128,9 @@ class LikeServiceTest extends AbstractIntegrationTest {
         User author = createUser();
         User user = createUser();
         Post post = createPost(author);
-        LikeReadDto created = likeService.create(createDto(post, user));
+        LikeReadDto created = likeService.create(createDto(post), user.getId());
 
-        LikeReadDto result = likeService.findById(created.id());
+        LikeReadDto result = likeService.findById(created.id(), user.getId(), false);
 
         assertEquals(created.id(), result.id());
         assertEquals(created.postId(), result.postId());
@@ -139,7 +139,8 @@ class LikeServiceTest extends AbstractIntegrationTest {
 
     @Test
     void findByIdThrowsWhenLikeDoesNotExist() {
-        assertThrows(LikeNotFoundException.class, () -> likeService.findById(UUID.randomUUID()));
+        assertThrows(LikeNotFoundException.class,
+                () -> likeService.findById(UUID.randomUUID(), UUID.randomUUID(), false));
     }
 
     @Test
@@ -148,8 +149,8 @@ class LikeServiceTest extends AbstractIntegrationTest {
         User firstUser = createUser();
         User secondUser = createUser();
         Post post = createPost(author);
-        LikeReadDto first = likeService.create(createDto(post, firstUser));
-        LikeReadDto second = likeService.create(createDto(post, secondUser));
+        LikeReadDto first = likeService.create(createDto(post), firstUser.getId());
+        LikeReadDto second = likeService.create(createDto(post), secondUser.getId());
 
         Page<LikeReadDto> firstPage = likeService.findAll(PageRequest.of(0, 1));
         Page<LikeReadDto> secondPage = likeService.findAll(PageRequest.of(1, 1));
@@ -170,12 +171,12 @@ class LikeServiceTest extends AbstractIntegrationTest {
         User secondUser = createUser();
         Post post = createPost(author);
         Post anotherPost = createPost(author);
-        LikeReadDto first = likeService.create(createDto(post, firstUser));
-        LikeReadDto second = likeService.create(createDto(post, secondUser));
-        likeService.create(createDto(anotherPost, firstUser));
+        LikeReadDto first = likeService.create(createDto(post), firstUser.getId());
+        LikeReadDto second = likeService.create(createDto(post), secondUser.getId());
+        likeService.create(createDto(anotherPost), firstUser.getId());
 
-        Page<LikeReadDto> result = likeService.findAllByPostId(post.getId(), PageRequest.of(0, 1));
-        Page<LikeReadDto> secondPage = likeService.findAllByPostId(post.getId(), PageRequest.of(1, 1));
+        Page<LikeReadDto> result = likeService.findAllByPostId(post.getId(), author.getId(), false, PageRequest.of(0, 1));
+        Page<LikeReadDto> secondPage = likeService.findAllByPostId(post.getId(), author.getId(), false, PageRequest.of(1, 1));
 
         assertEquals(1, result.getNumberOfElements());
         assertEquals(2, result.getTotalElements());
@@ -192,8 +193,8 @@ class LikeServiceTest extends AbstractIntegrationTest {
         User user = createUser();
         Post firstPost = createPost(author);
         Post secondPost = createPost(author);
-        LikeReadDto first = likeService.create(createDto(firstPost, user));
-        LikeReadDto second = likeService.create(createDto(secondPost, user));
+        LikeReadDto first = likeService.create(createDto(firstPost), user.getId());
+        LikeReadDto second = likeService.create(createDto(secondPost), user.getId());
 
         Page<LikeReadDto> result = likeService.findAllByUserId(user.getId(), PageRequest.of(0, 1));
         Page<LikeReadDto> secondPage = likeService.findAllByUserId(user.getId(), PageRequest.of(1, 1));
@@ -212,9 +213,9 @@ class LikeServiceTest extends AbstractIntegrationTest {
         User author = createUser();
         User user = createUser();
         Post post = createPost(author);
-        LikeReadDto created = likeService.create(createDto(post, user));
+        LikeReadDto created = likeService.create(createDto(post), user.getId());
 
-        likeService.delete(created.id());
+        likeService.delete(user.getId(), post.getId());
 
         assertFalse(likeRepository.existsById(created.id()));
     }

@@ -6,9 +6,6 @@ import java.util.UUID;
 
 public record LikeCreateDto(
         @NotNull
-        UUID postId,
-
-        @NotNull
-        UUID userId
+        UUID postId
 ) {
 }

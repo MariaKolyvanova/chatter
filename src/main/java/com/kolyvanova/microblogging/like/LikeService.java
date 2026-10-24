@@ -6,6 +6,7 @@ import com.kolyvanova.microblogging.exception.PostNotFoundException;
 import com.kolyvanova.microblogging.exception.UserNotFoundException;
 import com.kolyvanova.microblogging.post.Post;
 import com.kolyvanova.microblogging.post.PostRepository;
+import com.kolyvanova.microblogging.post.PostStatus;
 import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
+@Transactional
 public class LikeService {
 
     private final LikeRepository likeRepository;
@@ -25,14 +27,14 @@ public class LikeService {
     private final UserRepository userRepository;
     private final LikeMapper likeMapper;
 
-    @Transactional
-    public LikeReadDto create(LikeCreateDto dto) {
-        Post post = postRepository.findById(dto.postId())
+    public LikeReadDto create(LikeCreateDto dto, UUID userId) {
+        Post post = postRepository.findByIdAndStatus(dto.postId(), PostStatus.PUBLISHED)
                 .orElseThrow(() -> new PostNotFoundException(dto.postId()));
-        User user = userRepository.findById(dto.userId())
-                .orElseThrow(() -> new UserNotFoundException(dto.userId()));
 
-        if (likeRepository.existsByPostIdAndUserId(dto.postId(), dto.userId())) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        if (likeRepository.existsByPostIdAndUserId(dto.postId(), userId)) {
             throw new LikeAlreadyExistsException();
         }
 
@@ -45,34 +47,48 @@ public class LikeService {
 
     @Transactional(readOnly = true)
     public Page<LikeReadDto> findAll(Pageable pageable) {
-        return likeRepository.findAll(pageable)
+        return likeRepository.findAllByPostStatus(PostStatus.PUBLISHED, pageable)
                 .map(likeMapper::toReadDto);
     }
 
     @Transactional(readOnly = true)
-    public LikeReadDto findById(UUID id) {
+    public LikeReadDto findById(UUID id, UUID viewerId, boolean moderator) {
         Like like = likeRepository.findById(id)
                 .orElseThrow(() -> new LikeNotFoundException(id));
+        if (!isVisible(like.getPost(), viewerId, moderator)) {
+            throw new LikeNotFoundException(id);
+        }
 
         return likeMapper.toReadDto(like);
     }
 
     @Transactional(readOnly = true)
-    public Page<LikeReadDto> findAllByPostId(UUID postId, Pageable pageable) {
+    public Page<LikeReadDto> findAllByPostId(UUID postId, UUID viewerId, boolean moderator, Pageable pageable) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException(postId));
+        if (!isVisible(post, viewerId, moderator)) {
+            throw new PostNotFoundException(postId);
+        }
+
         return likeRepository.findAllByPostId(postId, pageable)
                 .map(likeMapper::toReadDto);
     }
 
     @Transactional(readOnly = true)
     public Page<LikeReadDto> findAllByUserId(UUID userId, Pageable pageable) {
-        return likeRepository.findAllByUserId(userId, pageable)
+        return likeRepository.findAllByUserIdAndPostStatus(userId, PostStatus.PUBLISHED, pageable)
                 .map(likeMapper::toReadDto);
     }
 
-    @Transactional
-    public void delete(UUID id) {
-        Like like = likeRepository.findById(id)
-                .orElseThrow(() -> new LikeNotFoundException(id));
+    private boolean isVisible(Post post, UUID viewerId, boolean moderator) {
+        return post.getStatus() == PostStatus.PUBLISHED
+                || post.getAuthor().getId().equals(viewerId)
+                || moderator;
+    }
+
+    public void delete(UUID userId, UUID postId) {
+        Like like = likeRepository.findByUserIdAndPostId(userId, postId)
+                .orElseThrow(() -> new LikeNotFoundException(userId, postId));
 
         likeRepository.delete(like);
     }

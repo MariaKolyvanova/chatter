@@ -60,7 +60,7 @@ class PostServiceTest extends AbstractIntegrationTest {
     }
 
     private PostCreateDto createDto(String content) {
-        return new PostCreateDto(content, PostCategory.GENERAL);
+        return new PostCreateDto(content, PostCategory.GENERAL, null);
     }
 
     @Test

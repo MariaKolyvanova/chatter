@@ -30,21 +30,34 @@ public class PostService {
         post.setAuthor(author);
         post.setStatus(PostStatus.PUBLISHED);
 
+        if (dto.replyToId() == null) {
+            Post savedPost = postRepository.save(post);
+            savedPost.setConversation(savedPost);
+            return postMapper.toReadDto(savedPost);
+        }
+
+        Post parent = postRepository.findById(dto.replyToId())
+                .orElseThrow(() -> new PostNotFoundException(dto.replyToId()));
+        if (!parent.getStatus().equals(PostStatus.PUBLISHED)) {
+            throw new PostNotFoundException(dto.replyToId());
+        }
+
+        post.setReplyTo(parent);
+        post.setConversation(parent.getConversation());
         Post savedPost = postRepository.save(post);
-        savedPost.setConversation(savedPost);
 
         return postMapper.toReadDto(savedPost);
     }
 
     @Transactional(readOnly = true)
     public Page<PostReadDto> findAll(Pageable pageable) {
-        return postRepository.findAllByStatus(PostStatus.PUBLISHED, pageable)
+        return postRepository.findAllByStatusAndReplyToIsNull(PostStatus.PUBLISHED, pageable)
                 .map(postMapper::toReadDto);
     }
 
     @Transactional(readOnly = true)
     public Page<PostReadDto> findAllByAuthorId(UUID authorId, Pageable pageable) {
-        return postRepository.findAllByAuthorIdAndStatus(authorId, PostStatus.PUBLISHED, pageable)
+        return postRepository.findAllByAuthorIdAndStatusAndReplyToIsNull(authorId, PostStatus.PUBLISHED, pageable)
                 .map(postMapper::toReadDto);
     }
 

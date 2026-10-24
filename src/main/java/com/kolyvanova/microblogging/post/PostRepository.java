@@ -17,4 +17,8 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     Page<Post> findAllByAuthorId(UUID authorId, Pageable pageable);
 
     Optional<Post> findByIdAndStatus(@NotNull UUID uuid, PostStatus status);
+
+    Page<Post> findAllByStatusAndReplyToIsNull(PostStatus postStatus, Pageable pageable);
+
+    Page<Post> findAllByAuthorIdAndStatusAndReplyToIsNull(UUID authorId, PostStatus postStatus, Pageable pageable);
 }

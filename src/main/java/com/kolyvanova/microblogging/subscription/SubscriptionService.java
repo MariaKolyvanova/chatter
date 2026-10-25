@@ -7,6 +7,7 @@ import com.kolyvanova.microblogging.exception.UserNotFoundException;
 import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 @Transactional
@@ -38,8 +40,10 @@ public class SubscriptionService {
         Subscription subscription = subscriptionMapper.toEntity(dto);
         subscription.setSubscriber(subscriber);
         subscription.setAuthor(author);
+        Subscription savedSubscription = subscriptionRepository.saveAndFlush(subscription);
+        log.info("Created subscription {} from user {} to author {}", savedSubscription.getId(), subscriberId, dto.authorId());
 
-        return subscriptionMapper.toReadDto(subscriptionRepository.saveAndFlush(subscription));
+        return subscriptionMapper.toReadDto(savedSubscription);
     }
 
     @Transactional(readOnly = true)
@@ -70,5 +74,6 @@ public class SubscriptionService {
                 .orElseThrow(() -> new SubscriptionNotFoundException(subscriberId, authorId));
 
         subscriptionRepository.delete(subscription);
+        log.info("Deleted subscription from user {} to author {}", subscriberId, authorId);
     }
 }

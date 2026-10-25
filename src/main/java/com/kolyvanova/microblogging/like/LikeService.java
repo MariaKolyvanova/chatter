@@ -10,6 +10,7 @@ import com.kolyvanova.microblogging.post.PostStatus;
 import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 @Transactional
@@ -41,8 +43,10 @@ public class LikeService {
         Like like = likeMapper.toEntity(dto);
         like.setPost(post);
         like.setUser(user);
+        Like savedLike = likeRepository.save(like);
+        log.info("Created like {} by user {} on post {}", savedLike.getId(), userId, dto.postId());
 
-        return likeMapper.toReadDto(likeRepository.save(like));
+        return likeMapper.toReadDto(savedLike);
     }
 
     @Transactional(readOnly = true)
@@ -91,5 +95,6 @@ public class LikeService {
                 .orElseThrow(() -> new LikeNotFoundException(userId, postId));
 
         likeRepository.delete(like);
+        log.info("Deleted like by user {} on post {}", userId, postId);
     }
 }

@@ -10,6 +10,7 @@ import com.kolyvanova.microblogging.post.PostStatus;
 import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class RepostService {
@@ -39,8 +41,10 @@ public class RepostService {
         Repost repost = repostMapper.toEntity(dto);
         repost.setPost(post);
         repost.setUser(user);
+        Repost savedRepost = repostRepository.save(repost);
+        log.info("Created repost {} by user {} on post {}", savedRepost.getId(), userId, dto.postId());
 
-        return repostMapper.toReadDto(repostRepository.save(repost));
+        return repostMapper.toReadDto(savedRepost);
     }
 
     @Transactional(readOnly = true)
@@ -89,5 +93,6 @@ public class RepostService {
                 .orElseThrow(() -> new RepostNotFoundException(id));
 
         repostRepository.delete(repost);
+        log.info("Deleted repost {} by user {}", id, userId);
     }
 }

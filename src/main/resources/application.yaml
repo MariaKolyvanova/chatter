@@ -8,7 +8,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -18,7 +18,9 @@ spring:
 
 logging:
   level:
-    liquibase: INFO
+    root: INFO
+    org:
+#      hibernate.SQL: DEBUG
 
 app:
   jwt:

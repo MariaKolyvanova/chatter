@@ -5,6 +5,7 @@ import com.kolyvanova.microblogging.exception.UserNotFoundException;
 import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+@Slf4j
 @Transactional
 @RequiredArgsConstructor
 @Service
@@ -33,6 +35,7 @@ public class PostService {
         if (dto.replyToId() == null) {
             Post savedPost = postRepository.save(post);
             savedPost.setConversation(savedPost);
+            log.info("Created post {} by user {}", savedPost.getId(), userId);
             return postMapper.toReadDto(savedPost);
         }
 
@@ -45,6 +48,7 @@ public class PostService {
         post.setReplyTo(parent);
         post.setConversation(parent.getConversation());
         Post savedPost = postRepository.save(post);
+        log.info("Created post {} by user {} in reply to {}", savedPost.getId(), userId, dto.replyToId());
 
         return postMapper.toReadDto(savedPost);
     }
@@ -89,6 +93,7 @@ public class PostService {
 
         postMapper.updateEntity(dto, post);
         postRepository.save(post);
+        log.info("Updated post {} by user {}", id, authorId);
 
         return postMapper.toReadDto(post);
     }
@@ -100,6 +105,7 @@ public class PostService {
             throw new AccessDeniedException("not the author");
 
         postRepository.delete(post);
+        log.info("Deleted post {} by user {}", id, authorId);
     }
 
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
@@ -109,6 +115,7 @@ public class PostService {
 
         post.setStatus(PostStatus.HIDDEN);
         postRepository.save(post);
+        log.info("Hid post {}", id);
     }
 
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
@@ -117,5 +124,6 @@ public class PostService {
                 .orElseThrow(() -> new PostNotFoundException(id));
         post.setStatus(PostStatus.PUBLISHED);
         postRepository.save(post);
+        log.info("Showed post {}", id);
     }
 }

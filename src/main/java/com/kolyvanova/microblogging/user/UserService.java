@@ -3,6 +3,7 @@ package com.kolyvanova.microblogging.user;
 import com.kolyvanova.microblogging.exception.UserAlreadyExistsException;
 import com.kolyvanova.microblogging.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class UserService {
@@ -31,6 +33,7 @@ public class UserService {
         user.setStatus(UserStatus.ACTIVE);
 
         User savedUser = userRepository.save(user);
+        log.info("Created user {}", savedUser.getId());
 
         return userMapper.toReadDto(savedUser);
     }
@@ -69,6 +72,7 @@ public class UserService {
 
         userMapper.updateEntity(dto, user);
         userRepository.save(user);
+        log.info("Updated user {}", id);
 
         return userMapper.toReadDto(user);
     }
@@ -78,5 +82,6 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
         userRepository.delete(user);
+        log.info("Deleted user {}", id);
     }
 }

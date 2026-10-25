@@ -42,14 +42,14 @@ public class RepostRestController {
 
     @GetMapping("/{id}")
     public RepostReadDto findById(@PathVariable UUID id) {
-        return repostService.findById(id);
+        return repostService.findById(id, currentUser.id(), currentUser.canModerate());
     }
 
     @GetMapping(params = "postId")
     public Page<RepostReadDto> findAllByPostId(
             @RequestParam UUID postId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
-        return repostService.findAllByPostId(postId, pageable);
+        return repostService.findAllByPostId(postId, currentUser.id(), currentUser.canModerate(), pageable);
     }
 
     @GetMapping(params = "userId")

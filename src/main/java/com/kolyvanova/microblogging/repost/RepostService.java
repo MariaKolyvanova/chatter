@@ -45,25 +45,42 @@ public class RepostService {
 
     @Transactional(readOnly = true)
     public Page<RepostReadDto> findAll(Pageable pageable) {
-        return repostRepository.findAll(pageable).map(repostMapper::toReadDto);
+        return repostRepository.findAllByPostStatus(PostStatus.PUBLISHED, pageable)
+                .map(repostMapper::toReadDto);
     }
 
     @Transactional(readOnly = true)
-    public RepostReadDto findById(UUID id) {
+    public RepostReadDto findById(UUID id, UUID viewerId, boolean moderator) {
         Repost repost = repostRepository.findById(id)
                 .orElseThrow(() -> new RepostNotFoundException(id));
+        if (!isVisible(repost.getPost(), viewerId, moderator)) {
+            throw new RepostNotFoundException(id);
+        }
 
         return repostMapper.toReadDto(repost);
     }
 
     @Transactional(readOnly = true)
-    public Page<RepostReadDto> findAllByPostId(UUID postId, Pageable pageable) {
+    public Page<RepostReadDto> findAllByPostId(UUID postId, UUID viewerId, boolean moderator, Pageable pageable) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException(postId));
+        if (!isVisible(post, viewerId, moderator)) {
+            throw new PostNotFoundException(postId);
+        }
+
         return repostRepository.findAllByPostId(postId, pageable).map(repostMapper::toReadDto);
     }
 
     @Transactional(readOnly = true)
     public Page<RepostReadDto> findAllByUserId(UUID userId, Pageable pageable) {
-        return repostRepository.findAllByUserId(userId, pageable).map(repostMapper::toReadDto);
+        return repostRepository.findAllByUserIdAndPostStatus(userId, PostStatus.PUBLISHED, pageable)
+                .map(repostMapper::toReadDto);
+    }
+
+    private boolean isVisible(Post post, UUID viewerId, boolean moderator) {
+        return post.getStatus() == PostStatus.PUBLISHED
+                || post.getAuthor().getId().equals(viewerId)
+                || moderator;
     }
 
     @Transactional

@@ -132,4 +132,9 @@ public class PostService {
         postRepository.save(post);
         log.info("Showed post {}", id);
     }
+
+    public Page<PostReadDto> findAllByInterests(UUID userId, Pageable pageable) {
+        return postRepository.findAllByInterestsUserId(userId, pageable)
+                .map(postMapper::toReadDto);
+    }
 }

@@ -2,8 +2,11 @@ package com.kolyvanova.microblogging.post;
 
 import com.kolyvanova.microblogging.exception.PostNotFoundException;
 import com.kolyvanova.microblogging.exception.UserNotFoundException;
+import com.kolyvanova.microblogging.exception.TopicSubscriptionAlreadyExistsException;
 import com.kolyvanova.microblogging.subscription.Subscription;
 import com.kolyvanova.microblogging.subscription.SubscriptionRepository;
+import com.kolyvanova.microblogging.topicSubscriptions.TopicSubscriptionsRepository;
+import com.kolyvanova.microblogging.topicSubscriptions.TopicSubscriptionsService;
 import com.kolyvanova.microblogging.support.AbstractIntegrationTest;
 import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
@@ -48,11 +51,18 @@ class PostServiceTest extends AbstractIntegrationTest {
     @Autowired
     private SubscriptionRepository subscriptionRepository;
 
+    @Autowired
+    private TopicSubscriptionsRepository topicSubscriptionsRepository;
+
+    @Autowired
+    private TopicSubscriptionsService topicSubscriptionsService;
+
     private int countUser = 0;
 
     @BeforeEach
     void cleanDatabase() {
         subscriptionRepository.deleteAll();
+        topicSubscriptionsRepository.deleteAll();
         postRepository.deleteAll();
         userRepository.deleteAll();
     }
@@ -272,5 +282,33 @@ class PostServiceTest extends AbstractIntegrationTest {
         assertEquals(1, feed.getTotalElements());
         assertEquals(followedPost.id(), feed.getContent().getFirst().id());
         assertTrue(emptyFeed.isEmpty());
+    }
+
+    @Test
+    void findInterestsReturnsPublishedRootsOfFollowedTopics() {
+        User reader = createUser();
+        User author = createUser();
+        topicSubscriptionsService.create(reader.getId(), PostCategory.SCIENCE);
+        assertThrows(TopicSubscriptionAlreadyExistsException.class,
+                () -> topicSubscriptionsService.create(reader.getId(), PostCategory.SCIENCE));
+
+        PostReadDto science = postService.create(
+                new PostCreateDto("science", PostCategory.SCIENCE, null), author.getId());
+        postService.create(new PostCreateDto("reply", PostCategory.SCIENCE, science.id()), author.getId());
+        PostReadDto hidden = postService.create(
+                new PostCreateDto("hidden", PostCategory.SCIENCE, null), author.getId());
+        Post hiddenPost = postRepository.findById(hidden.id()).orElseThrow();
+        hiddenPost.setStatus(PostStatus.HIDDEN);
+        postRepository.saveAndFlush(hiddenPost);
+        postService.create(new PostCreateDto("sports", PostCategory.SPORTS, null), author.getId());
+        PostReadDto own = postService.create(
+                new PostCreateDto("own", PostCategory.SCIENCE, null), reader.getId());
+
+        Page<PostReadDto> interests = postService.findAllByInterests(
+                reader.getId(), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt")));
+        Page<PostReadDto> empty = postService.findAllByInterests(author.getId(), PageRequest.of(0, 10));
+
+        assertEquals(List.of(own.id(), science.id()), interests.map(PostReadDto::id).getContent());
+        assertTrue(empty.isEmpty());
     }
 }

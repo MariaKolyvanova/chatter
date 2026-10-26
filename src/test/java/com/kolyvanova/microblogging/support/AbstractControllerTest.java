@@ -4,6 +4,7 @@ import com.kolyvanova.microblogging.like.LikeRepository;
 import com.kolyvanova.microblogging.post.PostRepository;
 import com.kolyvanova.microblogging.repost.RepostRepository;
 import com.kolyvanova.microblogging.subscription.SubscriptionRepository;
+import com.kolyvanova.microblogging.topicSubscriptions.TopicSubscriptionsRepository;
 import com.kolyvanova.microblogging.user.UserCreateDto;
 import com.kolyvanova.microblogging.user.UserReadDto;
 import com.kolyvanova.microblogging.user.UserRepository;
@@ -37,6 +38,9 @@ public abstract class AbstractControllerTest extends AbstractIntegrationTest {
     private SubscriptionRepository subscriptionRepository;
 
     @Autowired
+    private TopicSubscriptionsRepository topicSubscriptionsRepository;
+
+    @Autowired
     private PostRepository postRepository;
 
     @Autowired
@@ -50,6 +54,7 @@ public abstract class AbstractControllerTest extends AbstractIntegrationTest {
         likeRepository.deleteAll();
         repostRepository.deleteAll();
         subscriptionRepository.deleteAll();
+        topicSubscriptionsRepository.deleteAll();
         postRepository.deleteAll();
         userRepository.deleteAll();
     }

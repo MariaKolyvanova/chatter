@@ -25,6 +25,12 @@ public class PostRestController {
         return postService.create(dto, currentUser.id());
     }
 
+    @GetMapping("/feed")
+    public Page<PostReadDto> findFeed(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return postService.findFeed(currentUser.id(), pageable);
+    }
+
     @GetMapping()
     public Page<PostReadDto> findAll(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {

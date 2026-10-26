@@ -85,6 +85,12 @@ public class PostService {
         return postMapper.toReadDto(post);
     }
 
+    @Transactional(readOnly = true)
+    public Page<PostReadDto> findFeed(UUID userId, Pageable pageable) {
+        return postRepository.findFeed(userId, pageable)
+                .map(postMapper::toReadDto);
+    }
+
     public PostReadDto update(UUID id, UUID authorId, PostUpdateDto dto) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new PostNotFoundException(id));

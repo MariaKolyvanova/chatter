@@ -2,6 +2,8 @@ package com.kolyvanova.microblogging.post;
 
 import com.kolyvanova.microblogging.exception.PostNotFoundException;
 import com.kolyvanova.microblogging.exception.UserNotFoundException;
+import com.kolyvanova.microblogging.subscription.Subscription;
+import com.kolyvanova.microblogging.subscription.SubscriptionRepository;
 import com.kolyvanova.microblogging.support.AbstractIntegrationTest;
 import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
@@ -37,10 +39,15 @@ class PostServiceTest extends AbstractIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private SubscriptionRepository subscriptionRepository;
+
     private int countUser = 0;
 
     @BeforeEach
     void cleanDatabase() {
+        subscriptionRepository.deleteAll();
         postRepository.deleteAll();
         userRepository.deleteAll();
     }
@@ -187,5 +194,32 @@ class PostServiceTest extends AbstractIntegrationTest {
         assertEquals(PostStatus.HIDDEN, postService.findById(created.id(), other.getId(), true).status());
         assertThrows(PostNotFoundException.class,
                 () -> postService.findById(created.id(), other.getId(), false));
+    }
+
+    @Test
+    void findFeedReturnsPublishedPostsOfFollowedAuthors() {
+        User subscriber = createUser();
+        User followed = createUser();
+        User stranger = createUser();
+        subscriptionRepository.saveAndFlush(Subscription.builder()
+                .subscriber(subscriber)
+                .author(followed)
+                .build());
+
+        PostReadDto followedPost = postService.create(createDto("followed"), followed.getId());
+        postService.create(new PostCreateDto("reply", PostCategory.GENERAL, followedPost.id()), followed.getId());
+        PostReadDto hidden = postService.create(createDto("hidden"), followed.getId());
+        Post hiddenPost = postRepository.findById(hidden.id()).orElseThrow();
+        hiddenPost.setStatus(PostStatus.HIDDEN);
+        postRepository.saveAndFlush(hiddenPost);
+        postService.create(createDto("stranger"), stranger.getId());
+        postService.create(createDto("own"), subscriber.getId());
+
+        Page<PostReadDto> feed = postService.findFeed(subscriber.getId(), PageRequest.of(0, 10));
+        Page<PostReadDto> emptyFeed = postService.findFeed(stranger.getId(), PageRequest.of(0, 10));
+
+        assertEquals(1, feed.getTotalElements());
+        assertEquals(followedPost.id(), feed.getContent().getFirst().id());
+        assertTrue(emptyFeed.isEmpty());
     }
 }

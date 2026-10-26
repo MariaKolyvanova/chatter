@@ -1,6 +1,7 @@
 package com.kolyvanova.microblogging.user;
 
 import com.kolyvanova.microblogging.exception.UserAlreadyExistsException;
+import com.kolyvanova.microblogging.exception.UserNotFoundException;
 import com.kolyvanova.microblogging.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -93,6 +94,22 @@ class UserServiceTest extends AbstractIntegrationTest {
         assertEquals(created.id(), result.id());
         assertEquals(created.username(), result.username());
         assertEquals(created.displayName(), result.displayName());
+    }
+
+    @Test
+    void findByUsername() {
+        UserReadDto created = userService.create(createDto("ivan_ivanov", "ivan@mail.ru"));
+
+        UserPublicReadDto result = userService.findByUsername(created.username());
+
+        assertEquals(created.id(), result.id());
+        assertEquals(created.username(), result.username());
+        assertEquals(created.displayName(), result.displayName());
+    }
+
+    @Test
+    void findByUsernameThrowsWhenUserDoesNotExist() {
+        assertThrows(UserNotFoundException.class, () -> userService.findByUsername("missing"));
     }
 
     @Test

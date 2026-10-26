@@ -13,6 +13,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -166,6 +171,52 @@ class PostServiceTest extends AbstractIntegrationTest {
         assertEquals(dto.category(), result.category());
         assertEquals(created.authorId(), result.authorId());
         assertEquals(PostStatus.PUBLISHED, result.status());
+    }
+
+    @Test
+    void createReplyKeepsTheParentConversationAndStaysOutOfTheFeed() {
+        User author = createUser();
+        PostReadDto parent = postService.create(createDto("parent"), author.getId());
+
+        PostReadDto reply = postService.create(
+                new PostCreateDto("reply", PostCategory.GENERAL, parent.id()), author.getId());
+
+        assertEquals(parent.id(), reply.replyToId());
+        assertEquals(parent.id(), reply.conversationId());
+        assertEquals(List.of(parent.id()), postService.findAll(PageRequest.of(0, 10))
+                .map(PostReadDto::id).getContent());
+    }
+
+    @Test
+    void updateAndDeleteFailForAnotherAuthor() {
+        User author = createUser();
+        User other = createUser();
+        PostReadDto created = postService.create(createDto("post"), author.getId());
+        PostUpdateDto dto = new PostUpdateDto("changed", PostCategory.GENERAL);
+
+        assertThrows(AccessDeniedException.class, () -> postService.update(created.id(), other.getId(), dto));
+        assertThrows(AccessDeniedException.class, () -> postService.delete(created.id(), other.getId()));
+        assertTrue(postRepository.existsById(created.id()));
+    }
+
+    @Test
+    void hideAndShowChangeStatus() {
+        User author = createUser();
+        PostReadDto created = postService.create(createDto("post"), author.getId());
+
+        assertThrows(AuthenticationCredentialsNotFoundException.class, () -> postService.hide(created.id()));
+
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "moderator", "n/a", List.of(new SimpleGrantedAuthority("ROLE_MODERATOR"))));
+        try {
+            postService.hide(created.id());
+            assertEquals(PostStatus.HIDDEN, postService.findById(created.id(), author.getId(), false).status());
+
+            postService.show(created.id());
+            assertEquals(PostStatus.PUBLISHED, postService.findById(created.id(), author.getId(), false).status());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 
     @Test

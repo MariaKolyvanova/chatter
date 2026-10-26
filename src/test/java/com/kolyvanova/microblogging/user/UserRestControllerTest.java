@@ -2,6 +2,7 @@ package com.kolyvanova.microblogging.user;
 
 import com.kolyvanova.microblogging.support.AbstractControllerTest;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -24,6 +25,33 @@ class UserRestControllerTest extends AbstractControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").doesNotExist())
                 .andExpect(jsonPath("$.username").value("ivan_ivanov"));
+    }
+
+    @Test
+    void currentUserCanChangePassword() throws Exception {
+        UserReadDto user = createUser("ivan_ivanov");
+
+        mockMvc.perform(put("/api/v1/users/me/password")
+                        .with(asUser(user.id()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword": "pass123456", "newPassword": "newpass123"}
+                                """))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void changePasswordRejectsWrongCurrentPassword() throws Exception {
+        UserReadDto user = createUser("ivan_ivanov");
+
+        mockMvc.perform(put("/api/v1/users/me/password")
+                        .with(asUser(user.id()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword": "wrong-password", "newPassword": "newpass123"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Current password is incorrect"));
     }
 
     @Test

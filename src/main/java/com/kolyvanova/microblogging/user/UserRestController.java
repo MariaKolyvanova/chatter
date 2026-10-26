@@ -82,6 +82,17 @@ public class UserRestController {
         return userService.update(currentUser.id(), dto);
     }
 
+    @Operation(summary = "Change the current user's password")
+    @ApiResponse(responseCode = "400", description = "Validation failed or current password is incorrect",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "User not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @PutMapping("/me/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(@Valid @RequestBody ChangePasswordDto dto) {
+        userService.changePassword(currentUser.id(), dto.currentPassword(), dto.newPassword());
+    }
+
     @Operation(summary = "Change a user's role. Admin only")
     @ApiResponse(responseCode = "400", description = "Invalid role",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))

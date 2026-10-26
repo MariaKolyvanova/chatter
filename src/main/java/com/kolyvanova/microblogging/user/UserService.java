@@ -1,5 +1,6 @@
 package com.kolyvanova.microblogging.user;
 
+import com.kolyvanova.microblogging.exception.InvalidPasswordException;
 import com.kolyvanova.microblogging.exception.UserAlreadyExistsException;
 import com.kolyvanova.microblogging.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -85,6 +86,18 @@ public class UserService {
         log.info("Updated user {}", id);
 
         return userMapper.toReadDto(user);
+    }
+
+    @Transactional
+    public void changePassword(UUID id, String currentPassword, String newPassword) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new InvalidPasswordException();
+        }
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("Changed password of user {}", id);
     }
 
     @PreAuthorize("hasRole('ADMIN')")

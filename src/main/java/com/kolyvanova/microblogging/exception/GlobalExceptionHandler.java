@@ -65,11 +65,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .body(response);
     }
 
-    @ExceptionHandler(
-            SelfSubscriptionException.class
-    )
-    public ResponseEntity<ApiErrorResponse> selfSubscriptionHandler(
-            SelfSubscriptionException exception,
+    @ExceptionHandler({
+            SelfSubscriptionException.class,
+            InvalidPasswordException.class
+    })
+    public ResponseEntity<ApiErrorResponse> badRequestHandler(
+            RuntimeException exception,
             HttpServletRequest request) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
 

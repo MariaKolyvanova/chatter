@@ -1,5 +1,6 @@
 package com.kolyvanova.microblogging.user;
 
+import com.kolyvanova.microblogging.exception.InvalidPasswordException;
 import com.kolyvanova.microblogging.exception.UserAlreadyExistsException;
 import com.kolyvanova.microblogging.exception.UserNotFoundException;
 import com.kolyvanova.microblogging.support.AbstractIntegrationTest;
@@ -276,6 +277,19 @@ class UserServiceTest extends AbstractIntegrationTest {
         } finally {
             SecurityContextHolder.clearContext();
         }
+    }
+
+    @Test
+    void changePasswordReplacesTheHash() {
+        UserReadDto created = userService.create(createDto("ivan_ivanov", "ivan@mail.ru"));
+
+        assertThrows(InvalidPasswordException.class,
+                () -> userService.changePassword(created.id(), "wrong-password", "newpass123"));
+
+        userService.changePassword(created.id(), "pass123456", "newpass123");
+        String hash = userRepository.findById(created.id()).orElseThrow().getPasswordHash();
+        assertTrue(passwordEncoder.matches("newpass123", hash));
+        assertFalse(passwordEncoder.matches("pass123456", hash));
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.kolyvanova.microblogging.repost;
 
 import com.kolyvanova.microblogging.security.CurrentUser;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,23 +29,27 @@ public class RepostRestController {
     private final RepostService repostService;
     private final CurrentUser currentUser;
 
+    @Operation(summary = "Repost a post")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public RepostReadDto create(@RequestParam UUID postId) {
         return repostService.create(postId, currentUser.id());
     }
 
+    @Operation(summary = "List reposts")
     @GetMapping
     public Page<RepostReadDto> findAll(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return repostService.findAll(pageable);
     }
 
+    @Operation(summary = "Get a repost")
     @GetMapping("/{id}")
     public RepostReadDto findById(@PathVariable UUID id) {
         return repostService.findById(id, currentUser.id(), currentUser.canModerate());
     }
 
+    @Operation(summary = "List reposts of a post")
     @GetMapping(params = "postId")
     public Page<RepostReadDto> findAllByPostId(
             @RequestParam UUID postId,
@@ -52,6 +57,7 @@ public class RepostRestController {
         return repostService.findAllByPostId(postId, currentUser.id(), currentUser.canModerate(), pageable);
     }
 
+    @Operation(summary = "List a user's reposts")
     @GetMapping(params = "userId")
     public Page<RepostReadDto> findAllByUserId(
             @RequestParam UUID userId,
@@ -59,6 +65,7 @@ public class RepostRestController {
         return repostService.findAllByUserId(userId, pageable);
     }
 
+    @Operation(summary = "Delete a repost")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {

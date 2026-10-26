@@ -1,6 +1,7 @@
 package com.kolyvanova.microblogging.like;
 
 import com.kolyvanova.microblogging.security.CurrentUser;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,23 +29,27 @@ public class LikeRestController {
     private final LikeService likeService;
     private final CurrentUser currentUser;
 
+    @Operation(summary = "Like a post")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public LikeReadDto create(@RequestParam UUID postId) {
         return likeService.create(postId, currentUser.id());
     }
 
+    @Operation(summary = "List likes")
     @GetMapping
     public Page<LikeReadDto> findAll(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC)
                                          Pageable pageable) {
         return likeService.findAll(pageable);
     }
 
+    @Operation(summary = "Get a like")
     @GetMapping("/{id}")
     public LikeReadDto findById(@PathVariable UUID id) {
         return likeService.findById(id, currentUser.id(), currentUser.canModerate());
     }
 
+    @Operation(summary = "List likes of a post")
     @GetMapping(params = "postId")
     public Page<LikeReadDto> findAllByPostId(@RequestParam UUID postId,
                                              @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC)
@@ -52,6 +57,7 @@ public class LikeRestController {
         return likeService.findAllByPostId(postId, currentUser.id(), currentUser.canModerate(), pageable);
     }
 
+    @Operation(summary = "List a user's likes")
     @GetMapping(params = "userId")
     public Page<LikeReadDto> findAllByUserId(@RequestParam UUID userId,
                                              @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC)
@@ -59,6 +65,7 @@ public class LikeRestController {
         return likeService.findAllByUserId(userId, pageable);
     }
 
+    @Operation(summary = "Unlike a post")
     @DeleteMapping(params = "postId")
     public void delete(@RequestParam UUID postId) {
         likeService.delete(currentUser.id(), postId);

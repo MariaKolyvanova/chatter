@@ -82,6 +82,41 @@ public class UserRestController {
         return userService.update(currentUser.id(), dto);
     }
 
+    @Operation(summary = "Change a user's role. Admin only")
+    @ApiResponse(responseCode = "400", description = "Invalid role",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "403", description = "Access is denied",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "User not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @PutMapping("/{id}/role")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changeRole(@PathVariable UUID id, @RequestParam UserRole role) {
+        userService.changeRole(id, currentUser.id(), role);
+    }
+
+    @Operation(summary = "Block a user. Moderator or admin only")
+    @ApiResponse(responseCode = "403", description = "Access is denied",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "User not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @PutMapping("/{id}/block")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void block(@PathVariable UUID id) {
+        userService.block(id);
+    }
+
+    @Operation(summary = "Unblock a user. Moderator or admin only")
+    @ApiResponse(responseCode = "403", description = "Access is denied",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "User not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @PutMapping("/{id}/unblock")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void unblock(@PathVariable UUID id) {
+        userService.unblock(id);
+    }
+
     @Operation(summary = "Delete the current user")
     @ApiResponse(responseCode = "404", description = "User not found",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))

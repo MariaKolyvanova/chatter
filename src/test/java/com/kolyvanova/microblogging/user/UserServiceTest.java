@@ -9,10 +9,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -200,6 +206,76 @@ class UserServiceTest extends AbstractIntegrationTest {
 
         assertThrows(UserAlreadyExistsException.class,
                      () -> userService.update(first.id(), duplicateEmail));
+    }
+
+    @Test
+    void adminChangesRoleAndCannotChangeOwnRole() {
+        UserReadDto admin = userService.create(createDto("admin_user", "admin@mail.ru"));
+        UserReadDto user = userService.create(createDto("ivan_ivanov", "ivan@mail.ru"));
+
+        assertThrows(AuthenticationCredentialsNotFoundException.class,
+                () -> userService.changeRole(user.id(), admin.id(), UserRole.MODERATOR));
+
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "admin", "n/a", List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+        try {
+            userService.changeRole(user.id(), admin.id(), UserRole.MODERATOR);
+            assertEquals(UserRole.MODERATOR, userRepository.findById(user.id()).orElseThrow().getRole());
+
+            userService.changeRole(user.id(), admin.id(), UserRole.ADMIN);
+            assertEquals(UserRole.ADMIN, userRepository.findById(user.id()).orElseThrow().getRole());
+
+            userService.changeRole(user.id(), admin.id(), UserRole.USER);
+            assertEquals(UserRole.USER, userRepository.findById(user.id()).orElseThrow().getRole());
+
+            assertThrows(AccessDeniedException.class,
+                    () -> userService.changeRole(admin.id(), admin.id(), UserRole.USER));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void changeRoleThrowsWhenUserDoesNotExist() {
+        UserReadDto admin = userService.create(createDto("admin_user", "admin@mail.ru"));
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "admin", "n/a", List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+        try {
+            assertThrows(UserNotFoundException.class,
+                    () -> userService.changeRole(UUID.randomUUID(), admin.id(), UserRole.MODERATOR));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void blockAndUnblockChangeStatus() {
+        UserReadDto created = userService.create(createDto("ivan_ivanov", "ivan@mail.ru"));
+
+        assertThrows(AuthenticationCredentialsNotFoundException.class, () -> userService.block(created.id()));
+
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "moderator", "n/a", List.of(new SimpleGrantedAuthority("ROLE_MODERATOR"))));
+        try {
+            userService.block(created.id());
+            assertEquals(UserStatus.BLOCKED, userRepository.findById(created.id()).orElseThrow().getStatus());
+
+            userService.unblock(created.id());
+            assertEquals(UserStatus.ACTIVE, userRepository.findById(created.id()).orElseThrow().getStatus());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void blockThrowsWhenUserDoesNotExist() {
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "moderator", "n/a", List.of(new SimpleGrantedAuthority("ROLE_MODERATOR"))));
+        try {
+            assertThrows(UserNotFoundException.class, () -> userService.block(UUID.randomUUID()));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 
     @Test

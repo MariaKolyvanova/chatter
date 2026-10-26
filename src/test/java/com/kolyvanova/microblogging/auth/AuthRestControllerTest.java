@@ -1,8 +1,16 @@
 package com.kolyvanova.microblogging.auth;
 
 import com.kolyvanova.microblogging.support.AbstractControllerTest;
+import com.kolyvanova.microblogging.user.UserReadDto;
+import com.kolyvanova.microblogging.user.UserService;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.List;
 
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.blankOrNullString;
@@ -11,6 +19,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class AuthRestControllerTest extends AbstractControllerTest {
+
+    @Autowired
+    private UserService userService;
 
     @Test
     void registerReturnsCreatedUser() throws Exception {
@@ -52,6 +63,25 @@ class AuthRestControllerTest extends AbstractControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"username": "ivan_ivanov", "password": "wrong-password"}
+                                """))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void loginRejectsBlockedUser() throws Exception {
+        UserReadDto user = createUser("ivan_ivanov");
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "moderator", "n/a", List.of(new SimpleGrantedAuthority("ROLE_MODERATOR"))));
+        try {
+            userService.block(user.id());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username": "ivan_ivanov", "password": "pass123456"}
                                 """))
                 .andExpect(status().isUnauthorized());
     }

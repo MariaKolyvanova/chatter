@@ -4,6 +4,8 @@ import com.kolyvanova.microblogging.exception.UserAlreadyExistsException;
 import com.kolyvanova.microblogging.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -83,6 +85,39 @@ public class UserService {
         log.info("Updated user {}", id);
 
         return userMapper.toReadDto(user);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public void changeRole(UUID id, UUID actorId, UserRole role) {
+        if (id.equals(actorId)) {
+            throw new AccessDeniedException("cannot change your own role");
+        }
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+        user.setRole(role);
+        userRepository.save(user);
+        log.info("Changed role of user {} to {}", id, role);
+    }
+
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
+    @Transactional
+    public void block(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+        user.setStatus(UserStatus.BLOCKED);
+        userRepository.save(user);
+        log.info("Blocked user {}", id);
+    }
+
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
+    @Transactional
+    public void unblock(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+        user.setStatus(UserStatus.ACTIVE);
+        userRepository.save(user);
+        log.info("Unblocked user {}", id);
     }
 
     @Transactional

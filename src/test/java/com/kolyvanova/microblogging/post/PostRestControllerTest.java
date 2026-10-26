@@ -41,6 +41,17 @@ class PostRestControllerTest extends AbstractControllerTest {
     }
 
     @Test
+    void createRejectsContentLongerThan280Characters() throws Exception {
+        mockMvc.perform(post("/api/v1/posts")
+                        .with(asUser(UUID.randomUUID()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"content": "%s", "category": "GENERAL"}
+                                """.formatted("a".repeat(281))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void updateOfAnotherAuthorsPostIsForbidden() throws Exception {
         UserReadDto author = createUser("author");
         UserReadDto other = createUser("other");

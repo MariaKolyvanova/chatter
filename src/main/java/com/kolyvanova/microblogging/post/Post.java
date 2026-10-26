@@ -60,7 +60,7 @@ public class Post {
     @EqualsAndHashCode.Exclude
     private Post conversation;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, length = 280)
     private String content;
 
     @Enumerated(EnumType.STRING)

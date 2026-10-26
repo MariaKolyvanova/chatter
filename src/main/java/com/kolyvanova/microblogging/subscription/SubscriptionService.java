@@ -25,23 +25,23 @@ public class SubscriptionService {
     private final UserRepository userRepository;
     private final SubscriptionMapper subscriptionMapper;
 
-    public SubscriptionReadDto create(SubscriptionCreateDto dto, UUID subscriberId) {
+    public SubscriptionReadDto create(UUID subscriberId, UUID authorId) {
         User subscriber = userRepository.findById(subscriberId)
                 .orElseThrow(() -> new UserNotFoundException(subscriberId));
-        User author = userRepository.findById(dto.authorId())
-                .orElseThrow(() -> new UserNotFoundException(dto.authorId()));
-        if (subscriberId.equals(dto.authorId())) {
+        User author = userRepository.findById(authorId)
+                .orElseThrow(() -> new UserNotFoundException(authorId));
+        if (subscriberId.equals(authorId)) {
             throw new SelfSubscriptionException();
         }
-        if (subscriptionRepository.existsBySubscriberIdAndAuthorId(subscriberId, dto.authorId())) {
+        if (subscriptionRepository.existsBySubscriberIdAndAuthorId(subscriberId, authorId)) {
             throw new SubscriptionAlreadyExistsException();
         }
 
-        Subscription subscription = subscriptionMapper.toEntity(dto);
-        subscription.setSubscriber(subscriber);
-        subscription.setAuthor(author);
-        Subscription savedSubscription = subscriptionRepository.saveAndFlush(subscription);
-        log.info("Created subscription {} from user {} to author {}", savedSubscription.getId(), subscriberId, dto.authorId());
+        Subscription savedSubscription = subscriptionRepository.saveAndFlush(Subscription.builder()
+                .subscriber(subscriber)
+                .author(author)
+                .build());
+        log.info("Created subscription {} from user {} to author {}", savedSubscription.getId(), subscriberId, authorId);
 
         return subscriptionMapper.toReadDto(savedSubscription);
     }

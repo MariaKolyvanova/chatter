@@ -29,20 +29,20 @@ public class RepostService {
     private final RepostMapper repostMapper;
 
     @Transactional
-    public RepostReadDto create(RepostCreateDto dto, UUID userId) {
-        Post post = postRepository.findByIdAndStatus(dto.postId(), PostStatus.PUBLISHED)
-                .orElseThrow(() -> new PostNotFoundException(dto.postId()));
+    public RepostReadDto create(UUID postId, UUID userId) {
+        Post post = postRepository.findByIdAndStatus(postId, PostStatus.PUBLISHED)
+                .orElseThrow(() -> new PostNotFoundException(postId));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
-        if (repostRepository.existsByPostIdAndUserId(dto.postId(), userId)) {
+        if (repostRepository.existsByPostIdAndUserId(postId, userId)) {
             throw new RepostAlreadyExistsException();
         }
 
-        Repost repost = repostMapper.toEntity(dto);
-        repost.setPost(post);
-        repost.setUser(user);
-        Repost savedRepost = repostRepository.save(repost);
-        log.info("Created repost {} by user {} on post {}", savedRepost.getId(), userId, dto.postId());
+        Repost savedRepost = repostRepository.save(Repost.builder()
+                .post(post)
+                .user(user)
+                .build());
+        log.info("Created repost {} by user {} on post {}", savedRepost.getId(), userId, postId);
 
         return repostMapper.toReadDto(savedRepost);
     }

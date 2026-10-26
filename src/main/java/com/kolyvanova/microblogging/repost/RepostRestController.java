@@ -1,7 +1,7 @@
 package com.kolyvanova.microblogging.repost;
 
 import com.kolyvanova.microblogging.security.CurrentUser;
-import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.Page;
@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -20,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+@Tag(name = "reposts")
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/reposts")
@@ -30,8 +30,8 @@ public class RepostRestController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public RepostReadDto create(@Valid @RequestBody RepostCreateDto dto) {
-        return repostService.create(dto, currentUser.id());
+    public RepostReadDto create(@RequestParam UUID postId) {
+        return repostService.create(postId, currentUser.id());
     }
 
     @GetMapping

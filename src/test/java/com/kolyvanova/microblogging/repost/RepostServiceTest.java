@@ -58,16 +58,12 @@ class RepostServiceTest extends AbstractIntegrationTest {
                 .category(PostCategory.GENERAL).status(PostStatus.PUBLISHED).build());
     }
 
-    private RepostCreateDto createDto(Post post) {
-        return new RepostCreateDto(post.getId());
-    }
-
     @Test
     void create() {
         User author = createUser();
         User user = createUser();
         Post post = createPost(author);
-        RepostReadDto result = repostService.create(createDto(post), user.getId());
+        RepostReadDto result = repostService.create(post.getId(), user.getId());
         assertNotNull(result.id());
         assertEquals(post.getId(), result.postId());
         assertEquals(user.getId(), result.userId());
@@ -78,16 +74,15 @@ class RepostServiceTest extends AbstractIntegrationTest {
         User author = createUser();
         User user = createUser();
         Post post = createPost(author);
-        RepostCreateDto dto = createDto(post);
-        repostService.create(dto, user.getId());
-        assertThrows(RepostAlreadyExistsException.class, () -> repostService.create(dto, user.getId()));
+        repostService.create(post.getId(), user.getId());
+        assertThrows(RepostAlreadyExistsException.class, () -> repostService.create(post.getId(), user.getId()));
     }
 
     @Test
     void createFailsWhenPostDoesNotExist() {
         User user = createUser();
         assertThrows(PostNotFoundException.class,
-                () -> repostService.create(new RepostCreateDto(UUID.randomUUID()), user.getId()));
+                () -> repostService.create(UUID.randomUUID(), user.getId()));
     }
 
     @Test
@@ -95,14 +90,14 @@ class RepostServiceTest extends AbstractIntegrationTest {
         User author = createUser();
         Post post = createPost(author);
         assertThrows(UserNotFoundException.class,
-                () -> repostService.create(new RepostCreateDto(post.getId()), UUID.randomUUID()));
+                () -> repostService.create(post.getId(), UUID.randomUUID()));
     }
 
     @Test
     void findById() {
         User author = createUser();
         User user = createUser();
-        RepostReadDto created = repostService.create(createDto(createPost(author)), user.getId());
+        RepostReadDto created = repostService.create(createPost(author).getId(), user.getId());
         RepostReadDto result = repostService.findById(created.id(), user.getId(), false);
         assertEquals(created.id(), result.id());
         assertEquals(created.postId(), result.postId());
@@ -119,8 +114,8 @@ class RepostServiceTest extends AbstractIntegrationTest {
     void findAll() {
         User author = createUser();
         Post post = createPost(author);
-        RepostReadDto first = repostService.create(createDto(post), createUser().getId());
-        RepostReadDto second = repostService.create(createDto(post), createUser().getId());
+        RepostReadDto first = repostService.create(post.getId(), createUser().getId());
+        RepostReadDto second = repostService.create(post.getId(), createUser().getId());
         Page<RepostReadDto> firstPage = repostService.findAll(PageRequest.of(0, 1));
         Page<RepostReadDto> secondPage = repostService.findAll(PageRequest.of(1, 1));
         assertEquals(1, firstPage.getNumberOfElements());
@@ -139,9 +134,9 @@ class RepostServiceTest extends AbstractIntegrationTest {
         Post anotherPost = createPost(author);
         User firstUser = createUser();
         User secondUser = createUser();
-        RepostReadDto first = repostService.create(createDto(post), firstUser.getId());
-        RepostReadDto second = repostService.create(createDto(post), secondUser.getId());
-        repostService.create(createDto(anotherPost), createUser().getId());
+        RepostReadDto first = repostService.create(post.getId(), firstUser.getId());
+        RepostReadDto second = repostService.create(post.getId(), secondUser.getId());
+        repostService.create(anotherPost.getId(), createUser().getId());
         Page<RepostReadDto> result = repostService.findAllByPostId(post.getId(), author.getId(), false, PageRequest.of(0, 1));
         Page<RepostReadDto> secondPage = repostService.findAllByPostId(post.getId(), author.getId(), false, PageRequest.of(1, 1));
         assertEquals(1, result.getNumberOfElements());
@@ -157,8 +152,8 @@ class RepostServiceTest extends AbstractIntegrationTest {
     void findAllByUserId() {
         User author = createUser();
         User user = createUser();
-        RepostReadDto first = repostService.create(createDto(createPost(author)), user.getId());
-        RepostReadDto second = repostService.create(createDto(createPost(author)), user.getId());
+        RepostReadDto first = repostService.create(createPost(author).getId(), user.getId());
+        RepostReadDto second = repostService.create(createPost(author).getId(), user.getId());
         Page<RepostReadDto> result = repostService.findAllByUserId(user.getId(), PageRequest.of(0, 1));
         Page<RepostReadDto> secondPage = repostService.findAllByUserId(user.getId(), PageRequest.of(1, 1));
         assertEquals(1, result.getNumberOfElements());
@@ -174,7 +169,7 @@ class RepostServiceTest extends AbstractIntegrationTest {
     void deleteRemovesRepost() {
         User author = createUser();
         User user = createUser();
-        RepostReadDto created = repostService.create(createDto(createPost(author)), user.getId());
+        RepostReadDto created = repostService.create(createPost(author).getId(), user.getId());
         repostService.delete(created.id(), user.getId());
         assertFalse(repostRepository.existsById(created.id()));
     }

@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -112,6 +113,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(status)
                 .headers(headers)
                 .body(response);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> accessDeniedHandler(HttpServletRequest request) {
+        HttpStatus status = HttpStatus.FORBIDDEN;
+        return ResponseEntity.status(status).body(new ApiErrorResponse(
+                status.value(),
+                "Access is denied",
+                request.getRequestURI(),
+                Map.of()
+        ));
     }
 
     @ExceptionHandler(Exception.class)

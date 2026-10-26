@@ -184,6 +184,17 @@ class PostServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void createWithoutCategoryUsesOtherAndReplyKeepsTheParentCategory() {
+        User author = createUser();
+        PostReadDto root = postService.create(new PostCreateDto("root", null, null), author.getId());
+        PostReadDto reply = postService.create(
+                new PostCreateDto("reply", PostCategory.SPORTS, root.id()), author.getId());
+
+        assertEquals(PostCategory.OTHER, root.category());
+        assertEquals(PostCategory.OTHER, reply.category());
+    }
+
+    @Test
     void createReplyKeepsTheParentConversationAndStaysOutOfTheFeed() {
         User author = createUser();
         PostReadDto parent = postService.create(createDto("parent"), author.getId());
@@ -193,6 +204,7 @@ class PostServiceTest extends AbstractIntegrationTest {
 
         assertEquals(parent.id(), reply.replyToId());
         assertEquals(parent.id(), reply.conversationId());
+        assertEquals(parent.category(), reply.category());
         assertEquals(List.of(parent.id()), postService.findAll(PageRequest.of(0, 10))
                 .map(PostReadDto::id).getContent());
     }

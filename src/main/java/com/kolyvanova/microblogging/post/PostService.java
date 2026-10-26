@@ -33,6 +33,9 @@ public class PostService {
         post.setStatus(PostStatus.PUBLISHED);
 
         if (dto.replyToId() == null) {
+            if (post.getCategory() == null) {
+                post.setCategory(PostCategory.OTHER);
+            }
             Post savedPost = postRepository.save(post);
             savedPost.setConversation(savedPost);
             log.info("Created post {} by user {}", savedPost.getId(), userId);
@@ -47,6 +50,7 @@ public class PostService {
 
         post.setReplyTo(parent);
         post.setConversation(parent.getConversation());
+        post.setCategory(parent.getCategory());
         Post savedPost = postRepository.save(post);
         log.info("Created post {} by user {} in reply to {}", savedPost.getId(), userId, dto.replyToId());
 

@@ -1,7 +1,11 @@
 package com.kolyvanova.microblogging.repost;
 
+import com.kolyvanova.microblogging.exception.ApiErrorResponse;
 import com.kolyvanova.microblogging.security.CurrentUser;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +25,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @Tag(name = "reposts")
+@ApiResponse(responseCode = "401", description = "Authentication is required",
+        content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/reposts")
@@ -30,6 +36,10 @@ public class RepostRestController {
     private final CurrentUser currentUser;
 
     @Operation(summary = "Repost a post")
+    @ApiResponse(responseCode = "404", description = "User or post not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "Repost already exists",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public RepostReadDto create(@RequestParam UUID postId) {
@@ -44,12 +54,16 @@ public class RepostRestController {
     }
 
     @Operation(summary = "Get a repost")
+    @ApiResponse(responseCode = "404", description = "Repost not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @GetMapping("/{id}")
     public RepostReadDto findById(@PathVariable UUID id) {
         return repostService.findById(id, currentUser.id(), currentUser.canModerate());
     }
 
     @Operation(summary = "List reposts of a post")
+    @ApiResponse(responseCode = "404", description = "Post not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @GetMapping(params = "postId")
     public Page<RepostReadDto> findAllByPostId(
             @RequestParam UUID postId,
@@ -66,6 +80,8 @@ public class RepostRestController {
     }
 
     @Operation(summary = "Delete a repost")
+    @ApiResponse(responseCode = "404", description = "Repost not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {

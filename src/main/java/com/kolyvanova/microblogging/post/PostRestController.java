@@ -1,7 +1,11 @@
 package com.kolyvanova.microblogging.post;
 
+import com.kolyvanova.microblogging.exception.ApiErrorResponse;
 import com.kolyvanova.microblogging.security.CurrentUser;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +19,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @Tag(name = "posts")
+@ApiResponse(responseCode = "401", description = "Authentication is required",
+        content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/posts")
@@ -23,6 +29,10 @@ public class PostRestController {
     private final CurrentUser currentUser;
 
     @Operation(summary = "Create a post")
+    @ApiResponse(responseCode = "400", description = "Request validation failed",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "User or parent post not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PostReadDto create(@Valid @RequestBody PostCreateDto dto) {
@@ -51,6 +61,8 @@ public class PostRestController {
     }
 
     @Operation(summary = "Get a post")
+    @ApiResponse(responseCode = "404", description = "Post not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @GetMapping("/{id}")
     public PostReadDto findById(@PathVariable UUID id) {
         return postService.findById(id, currentUser.id(), currentUser.canModerate());
@@ -65,12 +77,22 @@ public class PostRestController {
     }
 
     @Operation(summary = "Update a post")
+    @ApiResponse(responseCode = "400", description = "Request validation failed",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "403", description = "Access is denied",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Post not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @PutMapping("/{id}")
     public PostReadDto update(@PathVariable UUID id, @Valid @RequestBody PostUpdateDto dto) {
         return postService.update(id, currentUser.id(), dto);
     }
 
     @Operation(summary = "Delete a post")
+    @ApiResponse(responseCode = "403", description = "Access is denied",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Post not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
@@ -78,6 +100,10 @@ public class PostRestController {
     }
 
     @Operation(summary = "Hide a post. Moderator or admin only")
+    @ApiResponse(responseCode = "403", description = "Access is denied",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Post not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @PutMapping("/{id}/hide")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void hide(@PathVariable UUID id) {
@@ -85,6 +111,10 @@ public class PostRestController {
     }
 
     @Operation(summary = "Show a post. Moderator or admin only")
+    @ApiResponse(responseCode = "403", description = "Access is denied",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Post not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @PutMapping("/{id}/show")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void show(@PathVariable UUID id) {

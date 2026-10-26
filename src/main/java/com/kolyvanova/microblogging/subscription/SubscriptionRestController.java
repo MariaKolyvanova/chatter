@@ -1,7 +1,11 @@
 package com.kolyvanova.microblogging.subscription;
 
+import com.kolyvanova.microblogging.exception.ApiErrorResponse;
 import com.kolyvanova.microblogging.security.CurrentUser;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +25,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @Tag(name = "subscriptions")
+@ApiResponse(responseCode = "401", description = "Authentication is required",
+        content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/subscriptions")
@@ -30,6 +36,12 @@ public class SubscriptionRestController {
     private final CurrentUser currentUser;
 
     @Operation(summary = "Subscribe to an author")
+    @ApiResponse(responseCode = "400", description = "Cannot subscribe to yourself",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "User not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "Subscription already exists",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public SubscriptionReadDto create(@RequestParam UUID authorId) {
@@ -44,6 +56,8 @@ public class SubscriptionRestController {
     }
 
     @Operation(summary = "Get a subscription")
+    @ApiResponse(responseCode = "404", description = "Subscription not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @GetMapping("/{id}")
     public SubscriptionReadDto findById(@PathVariable UUID id) {
         return subscriptionService.findById(id);
@@ -66,6 +80,8 @@ public class SubscriptionRestController {
     }
 
     @Operation(summary = "Unsubscribe from an author")
+    @ApiResponse(responseCode = "404", description = "Subscription not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @DeleteMapping(params = "authorId")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@RequestParam UUID authorId) {

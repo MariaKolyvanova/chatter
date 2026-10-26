@@ -1,8 +1,12 @@
 package com.kolyvanova.microblogging.auth;
 
+import com.kolyvanova.microblogging.exception.ApiErrorResponse;
 import com.kolyvanova.microblogging.user.UserCreateDto;
 import com.kolyvanova.microblogging.user.UserReadDto;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,6 +26,10 @@ public class AuthRestController {
     private final AuthService authService;
 
     @Operation(summary = "Register a user")
+    @ApiResponse(responseCode = "400", description = "Request validation failed",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "Username or email is already taken",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @PostMapping("/register")
     public ResponseEntity<UserReadDto> register(@Valid @RequestBody UserCreateDto userCreateDto) {
         return ResponseEntity
@@ -31,6 +39,10 @@ public class AuthRestController {
 
 
     @Operation(summary = "Log in")
+    @ApiResponse(responseCode = "400", description = "Request validation failed",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "401", description = "Invalid credentials",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         try {

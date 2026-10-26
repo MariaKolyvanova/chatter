@@ -53,6 +53,14 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public UserPublicReadDto findByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException(username));
+
+        return  userMapper.toPublicDto(user);
+    }
+
+    @Transactional(readOnly = true)
     public UserReadDto findMe(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));

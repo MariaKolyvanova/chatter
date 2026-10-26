@@ -29,22 +29,22 @@ public class LikeService {
     private final UserRepository userRepository;
     private final LikeMapper likeMapper;
 
-    public LikeReadDto create(LikeCreateDto dto, UUID userId) {
-        Post post = postRepository.findByIdAndStatus(dto.postId(), PostStatus.PUBLISHED)
-                .orElseThrow(() -> new PostNotFoundException(dto.postId()));
+    public LikeReadDto create(UUID postId, UUID userId) {
+        Post post = postRepository.findByIdAndStatus(postId, PostStatus.PUBLISHED)
+                .orElseThrow(() -> new PostNotFoundException(postId));
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-        if (likeRepository.existsByPostIdAndUserId(dto.postId(), userId)) {
+        if (likeRepository.existsByPostIdAndUserId(postId, userId)) {
             throw new LikeAlreadyExistsException();
         }
 
-        Like like = likeMapper.toEntity(dto);
-        like.setPost(post);
-        like.setUser(user);
-        Like savedLike = likeRepository.save(like);
-        log.info("Created like {} by user {} on post {}", savedLike.getId(), userId, dto.postId());
+        Like savedLike = likeRepository.save(Like.builder()
+                .post(post)
+                .user(user)
+                .build());
+        log.info("Created like {} by user {} on post {}", savedLike.getId(), userId, postId);
 
         return likeMapper.toReadDto(savedLike);
     }

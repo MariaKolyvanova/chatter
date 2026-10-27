@@ -1,7 +1,7 @@
 --liquibase formatted sql
 --changeset microblogging:5
 
-CREATE TABLE topic_subscriptions (
+CREATE TABLE IF NOT EXISTS topic_subscriptions (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL,
     category VARCHAR(30) NOT NULL,

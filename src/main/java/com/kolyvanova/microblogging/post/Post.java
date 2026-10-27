@@ -71,6 +71,9 @@ public class Post {
     @Column(nullable = false, length = 20)
     private PostStatus status;
 
+    @Column(nullable = false)
+    private long viewCount;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private Instant createdAt;

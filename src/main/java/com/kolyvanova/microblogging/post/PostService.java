@@ -75,7 +75,6 @@ public class PostService {
                 .map(postMapper::toReadDto);
     }
 
-    @Transactional(readOnly = true)
     public PostReadDto findById(UUID id, UUID viewerId, boolean moderator) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new PostNotFoundException(id));
@@ -85,6 +84,8 @@ public class PostService {
         if (!published && !own && !moderator) {
             throw new PostNotFoundException(id);
         }
+
+        post.setViewCount(post.getViewCount() + 1);
 
         return postMapper.toReadDto(post);
     }

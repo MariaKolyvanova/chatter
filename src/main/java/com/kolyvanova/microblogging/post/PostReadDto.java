@@ -11,6 +11,7 @@ public record PostReadDto(
         String content,
         PostCategory category,
         PostStatus status,
+        long viewCount,
         Instant createdAt
 ) {
 }

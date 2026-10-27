@@ -124,6 +124,29 @@ class PostServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void findByIdIncrementsViewCount() {
+        User author = createUser();
+        User other = createUser();
+        PostReadDto created = postService.create(createDto("post"), author.getId());
+
+        assertEquals(0, created.viewCount());
+        postService.findAll(PageRequest.of(0, 10));
+        assertEquals(0, postRepository.findById(created.id()).orElseThrow().getViewCount());
+
+        assertEquals(1, postService.findById(created.id(), other.getId(), false).viewCount());
+        assertEquals(2, postService.findById(created.id(), author.getId(), false).viewCount());
+        assertEquals(2, postRepository.findById(created.id()).orElseThrow().getViewCount());
+
+        Post post = postRepository.findById(created.id()).orElseThrow();
+        post.setStatus(PostStatus.HIDDEN);
+        postRepository.saveAndFlush(post);
+
+        assertThrows(PostNotFoundException.class,
+                () -> postService.findById(created.id(), other.getId(), false));
+        assertEquals(2, postRepository.findById(created.id()).orElseThrow().getViewCount());
+    }
+
+    @Test
     void findByIdThrowsWhenPostDoesNotExist() {
         assertThrows(PostNotFoundException.class,
                      () -> postService.findById(UUID.randomUUID(), UUID.randomUUID(), false));

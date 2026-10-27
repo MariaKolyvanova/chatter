@@ -57,7 +57,7 @@ public class UserRestController {
     @Operation(summary = "Get a user by username")
     @ApiResponse(responseCode = "404", description = "User not found",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
-    @GetMapping(params = "username")
+    @GetMapping("/by-username")
     public UserPublicReadDto findByUsername(@RequestParam String username) {
         return userService.findByUsername(username);
     }

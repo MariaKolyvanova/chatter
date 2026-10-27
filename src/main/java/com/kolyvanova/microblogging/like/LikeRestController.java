@@ -64,7 +64,7 @@ public class LikeRestController {
     @Operation(summary = "List likes of a post")
     @ApiResponse(responseCode = "404", description = "Post not found",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
-    @GetMapping(params = "postId")
+    @GetMapping("/by-post")
     public Page<LikeReadDto> findAllByPostId(@RequestParam UUID postId,
                                              @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC)
                                              Pageable pageable) {
@@ -72,7 +72,7 @@ public class LikeRestController {
     }
 
     @Operation(summary = "List a user's likes")
-    @GetMapping(params = "userId")
+    @GetMapping("/by-user")
     public Page<LikeReadDto> findAllByUserId(@RequestParam UUID userId,
                                              @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC)
                                              Pageable pageable) {

@@ -64,7 +64,7 @@ public class SubscriptionRestController {
     }
 
     @Operation(summary = "List a user's subscriptions")
-    @GetMapping(params = "subscriberId")
+    @GetMapping("/by-subscriber")
     public Page<SubscriptionReadDto> findAllBySubscriberId(
             @RequestParam UUID subscriberId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
@@ -72,7 +72,7 @@ public class SubscriptionRestController {
     }
 
     @Operation(summary = "List an author's subscribers")
-    @GetMapping(params = "authorId")
+    @GetMapping("/by-author")
     public Page<SubscriptionReadDto> findAllByAuthorId(
             @RequestParam UUID authorId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {

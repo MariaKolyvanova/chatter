@@ -64,7 +64,7 @@ public class RepostRestController {
     @Operation(summary = "List reposts of a post")
     @ApiResponse(responseCode = "404", description = "Post not found",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
-    @GetMapping(params = "postId")
+    @GetMapping("/by-post")
     public Page<RepostReadDto> findAllByPostId(
             @RequestParam UUID postId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
@@ -72,7 +72,7 @@ public class RepostRestController {
     }
 
     @Operation(summary = "List a user's reposts")
-    @GetMapping(params = "userId")
+    @GetMapping("/by-user")
     public Page<RepostReadDto> findAllByUserId(
             @RequestParam UUID userId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {

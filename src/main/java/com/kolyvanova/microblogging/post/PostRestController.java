@@ -69,7 +69,7 @@ public class PostRestController {
     }
 
     @Operation(summary = "List an author's published posts")
-    @GetMapping(params = "authorId")
+    @GetMapping(value = "by-author", params = "authorId")
     public Page<PostReadDto> findAllByAuthorId(
             @RequestParam UUID authorId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {

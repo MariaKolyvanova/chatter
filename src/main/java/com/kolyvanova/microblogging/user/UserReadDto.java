@@ -11,6 +11,7 @@ public record UserReadDto (
     String bio,
     UserRole role,
     String location,
+    String avatarKey,
     LocalDate birthDate,
     UserStatus status
 ) {

@@ -7,6 +7,7 @@ public record UserPublicReadDto(
         String username,
         String displayName,
         String bio,
-        String location
+        String location,
+        String avatarKey
 ) {
 }

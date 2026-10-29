@@ -12,6 +12,7 @@ public record PostReadDto(
         PostCategory category,
         PostStatus status,
         long viewCount,
+        String imageKey,
         Instant createdAt
 ) {
 }

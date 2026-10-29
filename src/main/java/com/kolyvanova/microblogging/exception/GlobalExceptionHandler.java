@@ -28,7 +28,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             LikeNotFoundException.class,
             SubscriptionNotFoundException.class,
             RepostNotFoundException.class,
-            TopicSubscriptionNotFoundException.class
+            TopicSubscriptionNotFoundException.class,
+            ImageNotFoundException.class,
+            FileNotFoundException.class
     })
     public ResponseEntity<ApiErrorResponse> notFoundHandler(RuntimeException exception, HttpServletRequest request) {
         HttpStatus status = HttpStatus.NOT_FOUND;
@@ -69,7 +71,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler({
             SelfSubscriptionException.class,
-            InvalidPasswordException.class
+            InvalidPasswordException.class,
+            InvalidFileException.class
     })
     public ResponseEntity<ApiErrorResponse> badRequestHandler(
             RuntimeException exception,

@@ -15,6 +15,10 @@ spring:
   liquibase:
     enabled: true
     change-log: "classpath:db/changelog/db.changelog-master.yaml"
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
 
 logging:
   level:
@@ -27,3 +31,6 @@ app:
     secret: ${JWT_SECRET}
     issuer: admin
     access-seconds: 900
+  media:
+    directory: media
+    max-bytes: 5242880

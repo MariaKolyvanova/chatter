@@ -13,6 +13,7 @@ public interface PostMapper {
     @Mapping(target = "conversation", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "viewCount", ignore = true)
+    @Mapping(target = "imageKey", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Post toEntity(PostCreateDto dto);
@@ -23,6 +24,7 @@ public interface PostMapper {
     @Mapping(target = "conversation", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "viewCount", ignore = true)
+    @Mapping(target = "imageKey", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntity(PostUpdateDto dto, @MappingTarget Post post);

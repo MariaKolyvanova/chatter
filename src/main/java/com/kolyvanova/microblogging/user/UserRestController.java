@@ -1,21 +1,28 @@
 package com.kolyvanova.microblogging.user;
 
 import com.kolyvanova.microblogging.exception.ApiErrorResponse;
+import com.kolyvanova.microblogging.image.ImageResponse;
 import com.kolyvanova.microblogging.security.CurrentUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @Tag(name = "users")
@@ -52,6 +59,18 @@ public class UserRestController {
     @GetMapping("/{id}")
     public UserPublicReadDto findById(@PathVariable UUID id) {
         return userService.findById(id);
+    }
+
+    @SecurityRequirements
+    @Operation(summary = "Get a user's avatar")
+    @ApiResponse(responseCode = "404", description = "User or avatar not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @GetMapping("/{id}/avatar")
+    public ResponseEntity<Resource> avatar(@PathVariable UUID id) {
+        ImageResponse image = userService.loadAvatar(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(image.contentType()))
+                .body(image.resource());
     }
 
     @Operation(summary = "Get a user by username")
@@ -91,6 +110,16 @@ public class UserRestController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePassword(@Valid @RequestBody ChangePasswordDto dto) {
         userService.changePassword(currentUser.id(), dto.currentPassword(), dto.newPassword());
+    }
+
+    @Operation(summary = "Update the current user's avatar")
+    @ApiResponse(responseCode = "400", description = "Image is empty or has an unsupported type",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "User not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @PutMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public UserReadDto updateAvatar(@RequestParam MultipartFile file) throws IOException {
+        return userService.updateAvatar(currentUser.id(), file);
     }
 
     @Operation(summary = "Change a user's role. Admin only")

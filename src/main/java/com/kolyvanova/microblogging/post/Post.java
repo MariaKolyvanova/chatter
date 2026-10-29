@@ -74,6 +74,9 @@ public class Post {
     @Column(nullable = false)
     private long viewCount;
 
+    @Column(length = 255)
+    private String imageKey;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private Instant createdAt;

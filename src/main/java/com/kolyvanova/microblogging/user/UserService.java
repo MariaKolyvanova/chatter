@@ -1,8 +1,10 @@
 package com.kolyvanova.microblogging.user;
 
-import com.kolyvanova.microblogging.exception.InvalidPasswordException;
-import com.kolyvanova.microblogging.exception.UserAlreadyExistsException;
-import com.kolyvanova.microblogging.exception.UserNotFoundException;
+import com.kolyvanova.microblogging.exception.*;
+import com.kolyvanova.microblogging.image.FileService;
+import com.kolyvanova.microblogging.image.ImageResponse;
+import com.kolyvanova.microblogging.post.Post;
+import com.kolyvanova.microblogging.post.PostRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -12,7 +14,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -22,6 +26,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final FileService fileService;
+    private final PostRepository postRepository;
 
     @Transactional
     public UserReadDto create(UserCreateDto dto){
@@ -88,6 +94,32 @@ public class UserService {
         return userMapper.toReadDto(user);
     }
 
+    @Transactional(readOnly = true)
+    public ImageResponse loadAvatar(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+        if (user.getAvatarKey() == null) {
+            throw new FileNotFoundException("Avatar Key is null");
+        }
+
+        return fileService.load(user.getAvatarKey());
+    }
+
+    @Transactional
+    public UserReadDto updateAvatar(UUID id, MultipartFile file) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+
+        String previous = user.getAvatarKey();
+        user.setAvatarKey(fileService.upload("avatar", file));
+        userRepository.save(user);
+        fileService.delete(previous);
+
+        log.info("Updated avatar of user {}", id);
+
+        return userMapper.toReadDto(user);
+    }
+
     @Transactional
     public void changePassword(UUID id, String currentPassword, String newPassword) {
         User user = userRepository.findById(id)
@@ -137,7 +169,17 @@ public class UserService {
     public void delete(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
+
+        List<String> imageKeys = postRepository.findAllByAuthorId(id, Pageable.unpaged()).stream()
+                .map(Post::getImageKey)
+                .filter(key -> key != null)
+                .toList();
+        String avatarKey = user.getAvatarKey();
+
         userRepository.delete(user);
+        fileService.delete(avatarKey);
+        imageKeys.forEach(fileService::delete);
+
         log.info("Deleted user {}", id);
     }
 }

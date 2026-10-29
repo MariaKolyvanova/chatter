@@ -57,6 +57,9 @@ public class User {
     @Column(length = 100)
     private String location;
 
+    @Column(length = 255)
+    private String avatarKey;
+
     private LocalDate birthDate;
 
     @NonNull

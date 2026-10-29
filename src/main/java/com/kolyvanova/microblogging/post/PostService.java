@@ -1,7 +1,10 @@
 package com.kolyvanova.microblogging.post;
 
+import com.kolyvanova.microblogging.exception.FileNotFoundException;
 import com.kolyvanova.microblogging.exception.PostNotFoundException;
 import com.kolyvanova.microblogging.exception.UserNotFoundException;
+import com.kolyvanova.microblogging.image.FileService;
+import com.kolyvanova.microblogging.image.ImageResponse;
 import com.kolyvanova.microblogging.user.User;
 import com.kolyvanova.microblogging.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
@@ -23,6 +27,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final PostMapper postMapper;
     private final UserRepository userRepository;
+    private final FileService fileService;
 
     public PostReadDto create(PostCreateDto dto, UUID userId) {
         User author = userRepository.findById(userId)
@@ -76,16 +81,44 @@ public class PostService {
     }
 
     public PostReadDto findById(UUID id, UUID viewerId, boolean moderator) {
+        Post post = visiblePost(id, viewerId, moderator);
+        post.setViewCount(post.getViewCount() + 1);
+        return postMapper.toReadDto(post);
+    }
+
+    private Post visiblePost(UUID id, UUID viewerId, boolean moderator) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new PostNotFoundException(id));
-
         boolean published = post.getStatus() == PostStatus.PUBLISHED;
         boolean own = post.getAuthor().getId().equals(viewerId);
         if (!published && !own && !moderator) {
             throw new PostNotFoundException(id);
         }
+        return post;
+    }
 
-        post.setViewCount(post.getViewCount() + 1);
+    @Transactional(readOnly = true)
+    public ImageResponse loadImage(UUID id, UUID viewerId, boolean moderator) {
+        Post post = visiblePost(id, viewerId, moderator);
+        if (post.getImageKey() == null) {
+            throw new FileNotFoundException();
+        }
+        return fileService.load(post.getImageKey());
+    }
+
+    public PostReadDto updateImage(UUID id, UUID authorId, MultipartFile file) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new PostNotFoundException(id));
+        if (!post.getAuthor().getId().equals(authorId)) {
+            throw new AccessDeniedException("not the author");
+        }
+
+        String previous = post.getImageKey();
+        post.setImageKey(fileService.upload("post", file));
+        postRepository.save(post);
+        fileService.delete(previous);
+
+        log.info("Updated image of post {} by user {}", id, authorId);
 
         return postMapper.toReadDto(post);
     }
@@ -115,7 +148,10 @@ public class PostService {
         if (!post.getAuthor().getId().equals(authorId))
             throw new AccessDeniedException("not the author");
 
+        String imageKey = post.getImageKey();
         postRepository.delete(post);
+        fileService.delete(imageKey);
+
         log.info("Deleted post {} by user {}", id, authorId);
     }
 

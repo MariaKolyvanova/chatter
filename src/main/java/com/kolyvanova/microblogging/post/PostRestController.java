@@ -1,6 +1,7 @@
 package com.kolyvanova.microblogging.post;
 
 import com.kolyvanova.microblogging.exception.ApiErrorResponse;
+import com.kolyvanova.microblogging.image.ImageResponse;
 import com.kolyvanova.microblogging.security.CurrentUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -9,13 +10,18 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @Tag(name = "posts")
@@ -68,6 +74,17 @@ public class PostRestController {
         return postService.findById(id, currentUser.id(), currentUser.canModerate());
     }
 
+    @Operation(summary = "Get a post image")
+    @ApiResponse(responseCode = "404", description = "Post or image not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @GetMapping("/{id}/image")
+    public ResponseEntity<Resource> image(@PathVariable UUID id) {
+        ImageResponse image = postService.loadImage(id, currentUser.id(), currentUser.canModerate());
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(image.contentType()))
+                .body(image.resource());
+    }
+
     @Operation(summary = "List an author's published posts")
     @GetMapping(value = "by-author", params = "authorId")
     public Page<PostReadDto> findAllByAuthorId(
@@ -93,6 +110,18 @@ public class PostRestController {
     @PutMapping("/{id}")
     public PostReadDto update(@PathVariable UUID id, @Valid @RequestBody PostUpdateDto dto) {
         return postService.update(id, currentUser.id(), dto);
+    }
+
+    @Operation(summary = "Add an image to a post")
+    @ApiResponse(responseCode = "400", description = "Image is empty or has an unsupported type",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "403", description = "Access is denied",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Post not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public PostReadDto updateImage(@PathVariable UUID id, @RequestParam MultipartFile file) throws IOException {
+        return postService.updateImage(id, currentUser.id(), file);
     }
 
     @Operation(summary = "Delete a post")

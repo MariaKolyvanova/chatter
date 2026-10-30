@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset microblogging:5
+--changeset chatter:5
 
 CREATE TABLE IF NOT EXISTS topic_subscriptions (
     id UUID PRIMARY KEY,

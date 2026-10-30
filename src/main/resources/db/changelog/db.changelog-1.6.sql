@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset microblogging:7
+--changeset chatter:7
 
 ALTER TABLE users
     ADD COLUMN IF NOT EXISTS avatar_key VARCHAR(255);

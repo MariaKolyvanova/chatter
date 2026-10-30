@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset microblogging:3
+--changeset chatter:3
 
 CREATE INDEX idx_posts_author_created_at ON posts (author_id, created_at);
 CREATE INDEX idx_posts_reply_to_id ON posts (reply_to_id);

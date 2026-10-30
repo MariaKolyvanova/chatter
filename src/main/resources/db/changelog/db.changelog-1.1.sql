@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset microblogging:2
+--changeset chatter:2
 
 DROP TABLE IF EXISTS comments;
 

@@ -1,0 +1,12 @@
+package com.kolyvanova.chatter.repost;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+@Mapper(componentModel = "spring")
+public interface RepostMapper {
+
+    @Mapping(target = "postId", source = "post.id")
+    @Mapping(target = "userId", source = "user.id")
+    RepostReadDto toReadDto(Repost repost);
+}

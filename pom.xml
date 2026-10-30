@@ -9,10 +9,10 @@
         <relativePath/>
     </parent>
     <groupId>com.kolyvanova</groupId>
-    <artifactId>spring-microblogging-service</artifactId>
+    <artifactId>chatter</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>spring-microblogging-service</name>
-    <description>spring-microblogging-service</description>
+    <name>Chatter</name>
+    <description>Chatter</description>
     <url/>
     <licenses>
         <license/>

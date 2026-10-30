@@ -2,6 +2,7 @@ package com.kolyvanova.microblogging.user;
 
 import com.kolyvanova.microblogging.support.AbstractControllerTest;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
@@ -122,6 +123,21 @@ class UserRestControllerTest extends AbstractControllerTest {
                         .with(jwt().jwt(token -> token.subject(admin.id().toString()))
                                 .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void newUserReceivesTheDefaultAvatar() throws Exception {
+        UserReadDto user = createUser("default_avatar");
+        byte[] png = new ClassPathResource("avatar/default.png").getContentAsByteArray();
+
+        mockMvc.perform(get("/api/v1/users/me").with(asUser(user.id())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.avatarKey").value("avatar/default.png"));
+
+        mockMvc.perform(get("/api/v1/users/{id}/avatar", user.id()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/png"))
+                .andExpect(content().bytes(png));
     }
 
     @Test

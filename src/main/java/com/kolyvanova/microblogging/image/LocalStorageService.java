@@ -14,6 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 
+import static com.kolyvanova.microblogging.image.FileService.DEFAULT_AVATAR_KEY;
+
 @Service
 @RequiredArgsConstructor
 public class LocalStorageService {
@@ -44,7 +46,7 @@ public class LocalStorageService {
     }
 
     public void delete(String key) {
-        if (key == null) {
+        if (key == null || DEFAULT_AVATAR_KEY.equals(key)) {
             return;
         }
 

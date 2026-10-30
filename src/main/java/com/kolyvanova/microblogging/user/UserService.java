@@ -19,6 +19,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.UUID;
 
+import static com.kolyvanova.microblogging.image.FileService.DEFAULT_AVATAR_KEY;
+
 @Slf4j
 @RequiredArgsConstructor
 @Service
@@ -40,6 +42,7 @@ public class UserService {
         user.setPasswordHash(passwordEncoder.encode(dto.password()));
         user.setRole(UserRole.USER);
         user.setStatus(UserStatus.ACTIVE);
+        user.setAvatarKey(DEFAULT_AVATAR_KEY);
 
         User savedUser = userRepository.save(user);
         log.info("Created user {}", savedUser.getId());
@@ -98,10 +101,6 @@ public class UserService {
     public ImageResponse loadAvatar(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
-        if (user.getAvatarKey() == null) {
-            throw new FileNotFoundException("Avatar Key is null");
-        }
-
         return fileService.load(user.getAvatarKey());
     }
 
@@ -174,10 +173,8 @@ public class UserService {
                 .map(Post::getImageKey)
                 .filter(key -> key != null)
                 .toList();
-        String avatarKey = user.getAvatarKey();
-
         userRepository.delete(user);
-        fileService.delete(avatarKey);
+        fileService.delete(user.getAvatarKey());
         imageKeys.forEach(fileService::delete);
 
         log.info("Deleted user {}", id);

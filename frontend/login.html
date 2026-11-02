@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="favicon.ico" sizes="48x48">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <title>Log in · Chatter</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="auth" data-page="login">
+<main class="card">
+    <a class="brand" href="index.html">Chatter</a>
+    <h1>Log in</h1>
+    <form class="form">
+        <label>Username <input name="username" autocomplete="username" required></label>
+        <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="btn" type="submit">Log in</button>
+    </form>
+    <p class="muted">No account yet? <a href="register.html">Register</a></p>
+</main>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

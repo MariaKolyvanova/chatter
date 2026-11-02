@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="favicon.ico" sizes="48x48">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <title>Register · Chatter</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="auth" data-page="register">
+<main class="card">
+    <a class="brand" href="index.html">Chatter</a>
+    <h1>Create your account</h1>
+    <form class="form">
+        <label><span class="field-name">Username <span class="req">*</span></span><span class="with-info"><input name="username" minlength="3" maxlength="50" pattern="[A-Za-z0-9_]{3,50}" required><span class="info" tabindex="0">i<span class="info-tip">3–50 characters. Latin letters, digits and underscore. Saved in lowercase.</span></span></span></label>
+        <label><span class="field-name">Email <span class="req">*</span></span><span class="with-info"><input name="email" type="email" maxlength="255" required><span class="info" tabindex="0">i<span class="info-tip">A valid email, up to 255 characters.</span></span></span></label>
+        <label><span class="field-name">Password <span class="req">*</span></span><span class="with-info"><input name="password" type="password" minlength="8" maxlength="100" required><span class="info" tabindex="0">i<span class="info-tip">8–100 characters.</span></span></span></label>
+        <label><span class="field-name">Display name <span class="req">*</span></span><span class="with-info"><input name="displayName" minlength="3" maxlength="100" required><span class="info" tabindex="0">i<span class="info-tip">3–100 characters.</span></span></span></label>
+        <label><span class="field-name">Bio</span><span class="with-info"><textarea name="bio" rows="3"></textarea><span class="info" tabindex="0">i<span class="info-tip">Optional.</span></span></span></label>
+        <label><span class="field-name">Location</span><span class="with-info"><input name="location" maxlength="100"><span class="info" tabindex="0">i<span class="info-tip">Optional. Up to 100 characters.</span></span></span></label>
+        <label><span class="field-name">Birth date <span class="req">*</span></span><span class="with-info"><input name="birthDate" type="date" required><span class="info" tabindex="0">i<span class="info-tip">A date in the past.</span></span></span></label>
+        <button class="btn" type="submit">Register</button>
+    </form>
+    <p class="muted">Already registered? <a href="login.html">Log in</a></p>
+</main>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

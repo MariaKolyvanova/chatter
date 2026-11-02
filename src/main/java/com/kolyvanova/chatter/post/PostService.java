@@ -64,7 +64,21 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public Page<PostReadDto> findAll(Pageable pageable) {
-        return postRepository.findAllByStatusAndReplyToIsNull(PostStatus.PUBLISHED, pageable)
+        return findAll(null, pageable);
+    }
+
+    public Page<PostReadDto> findAll(PostCategory category, Pageable pageable) {
+        if (category == null) {
+            return postRepository.findAllByStatusAndReplyToIsNull(PostStatus.PUBLISHED, pageable)
+                    .map(postMapper::toReadDto);
+        }
+        return postRepository.findAllByStatusAndReplyToIsNullAndCategory(PostStatus.PUBLISHED, category, pageable)
+                .map(postMapper::toReadDto);
+    }
+
+    public Page<PostReadDto> findReplies(UUID parentId, UUID viewerId, boolean moderator, Pageable pageable) {
+        visiblePost(parentId, viewerId, moderator);
+        return postRepository.findAllByReplyToIdAndStatus(parentId, PostStatus.PUBLISHED, pageable)
                 .map(postMapper::toReadDto);
     }
 
@@ -75,14 +89,26 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
+    public Page<PostReadDto> findRepliesByAuthorId(UUID authorId, Pageable pageable) {
+        return postRepository.findAllByAuthorIdAndStatusAndReplyToIsNotNull(authorId, PostStatus.PUBLISHED, pageable)
+                .map(postMapper::toReadDto);
+    }
+
+    @Transactional(readOnly = true)
     public Page<PostReadDto> findMine(UUID authorId, Pageable pageable) {
         return postRepository.findAllByAuthorId(authorId, pageable)
                 .map(postMapper::toReadDto);
     }
 
     public PostReadDto findById(UUID id, UUID viewerId, boolean moderator) {
+        return findById(id, viewerId, moderator, true);
+    }
+
+    public PostReadDto findById(UUID id, UUID viewerId, boolean moderator, boolean countView) {
         Post post = visiblePost(id, viewerId, moderator);
-        post.setViewCount(post.getViewCount() + 1);
+        if (countView) {
+            post.setViewCount(post.getViewCount() + 1);
+        }
         return postMapper.toReadDto(post);
     }
 

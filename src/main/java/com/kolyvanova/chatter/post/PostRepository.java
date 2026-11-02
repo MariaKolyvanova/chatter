@@ -22,7 +22,13 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     Page<Post> findAllByStatusAndReplyToIsNull(PostStatus postStatus, Pageable pageable);
 
+    Page<Post> findAllByStatusAndReplyToIsNullAndCategory(PostStatus postStatus, PostCategory category, Pageable pageable);
+
+    Page<Post> findAllByReplyToIdAndStatus(UUID replyToId, PostStatus status, Pageable pageable);
+
     Page<Post> findAllByAuthorIdAndStatusAndReplyToIsNull(UUID authorId, PostStatus postStatus, Pageable pageable);
+
+    Page<Post> findAllByAuthorIdAndStatusAndReplyToIsNotNull(UUID authorId, PostStatus postStatus, Pageable pageable);
 
     @Query("""
             SELECT p FROM Post p

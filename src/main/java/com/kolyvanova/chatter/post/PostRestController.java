@@ -55,8 +55,9 @@ public class PostRestController {
     @Operation(summary = "List published posts")
     @GetMapping()
     public Page<PostReadDto> findAll(
+            @RequestParam(required = false) PostCategory category,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
-        return postService.findAll(pageable);
+        return postService.findAll(category, pageable);
     }
 
     @Operation(summary = "List the current user's posts")
@@ -70,8 +71,19 @@ public class PostRestController {
     @ApiResponse(responseCode = "404", description = "Post not found",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @GetMapping("/{id}")
-    public PostReadDto findById(@PathVariable UUID id) {
-        return postService.findById(id, currentUser.id(), currentUser.canModerate());
+    public PostReadDto findById(@PathVariable UUID id,
+                               @RequestParam(defaultValue = "true") boolean countView) {
+        return postService.findById(id, currentUser.id(), currentUser.canModerate(), countView);
+    }
+
+    @Operation(summary = "List replies of a post")
+    @ApiResponse(responseCode = "404", description = "Post not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @GetMapping("/{id}/replies")
+    public Page<PostReadDto> findReplies(
+            @PathVariable UUID id,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+        return postService.findReplies(id, currentUser.id(), currentUser.canModerate(), pageable);
     }
 
     @Operation(summary = "Get a post image")
@@ -89,7 +101,11 @@ public class PostRestController {
     @GetMapping(value = "by-author", params = "authorId")
     public Page<PostReadDto> findAllByAuthorId(
             @RequestParam UUID authorId,
+            @RequestParam(defaultValue = "false") boolean replies,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+        if (replies) {
+            return postService.findRepliesByAuthorId(authorId, pageable);
+        }
         return postService.findAllByAuthorId(authorId, pageable);
     }
 

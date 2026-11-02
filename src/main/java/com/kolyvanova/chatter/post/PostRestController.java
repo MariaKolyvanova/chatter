@@ -109,13 +109,6 @@ public class PostRestController {
         return postService.findAllByAuthorId(authorId, pageable);
     }
 
-    @Operation(summary = "Get the feed of followed topics")
-    @GetMapping("/interests")
-    public Page<PostReadDto> findAllByInterests(
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return postService.findAllByInterests(currentUser.id(), pageable);
-    }
-
     @Operation(summary = "Update a post")
     @ApiResponse(responseCode = "400", description = "Request validation failed",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))

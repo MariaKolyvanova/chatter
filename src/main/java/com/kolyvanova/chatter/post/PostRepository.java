@@ -40,16 +40,4 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                 )
             """)
     Page<Post> findFeed(@Param("subscriberId") UUID subscriberId, Pageable pageable);
-
-
-    @Query("""
-            SELECT p FROM Post p
-            WHERE p.replyTo IS NULL
-                AND p.status = com.kolyvanova.chatter.post.PostStatus.PUBLISHED
-                AND p.category IN (
-                    SELECT t.category FROM TopicSubscriptions t
-                    WHERE t.user.id = :userId
-                )
-            """)
-    Page<Post> findAllByInterestsUserId(@Param("userId") UUID userId, Pageable pageable);
 }

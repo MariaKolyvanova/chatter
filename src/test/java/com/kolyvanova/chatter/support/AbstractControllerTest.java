@@ -4,7 +4,6 @@ import com.kolyvanova.chatter.like.LikeRepository;
 import com.kolyvanova.chatter.post.PostRepository;
 import com.kolyvanova.chatter.repost.RepostRepository;
 import com.kolyvanova.chatter.subscription.SubscriptionRepository;
-import com.kolyvanova.chatter.topicSubscriptions.TopicSubscriptionsRepository;
 import com.kolyvanova.chatter.user.UserCreateDto;
 import com.kolyvanova.chatter.user.UserReadDto;
 import com.kolyvanova.chatter.user.UserRepository;
@@ -38,9 +37,6 @@ public abstract class AbstractControllerTest extends AbstractIntegrationTest {
     private SubscriptionRepository subscriptionRepository;
 
     @Autowired
-    private TopicSubscriptionsRepository topicSubscriptionsRepository;
-
-    @Autowired
     private PostRepository postRepository;
 
     @Autowired
@@ -54,7 +50,6 @@ public abstract class AbstractControllerTest extends AbstractIntegrationTest {
         likeRepository.deleteAll();
         repostRepository.deleteAll();
         subscriptionRepository.deleteAll();
-        topicSubscriptionsRepository.deleteAll();
         postRepository.deleteAll();
         userRepository.deleteAll();
     }

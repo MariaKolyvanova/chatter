@@ -28,7 +28,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             LikeNotFoundException.class,
             SubscriptionNotFoundException.class,
             RepostNotFoundException.class,
-            TopicSubscriptionNotFoundException.class,
             ImageNotFoundException.class,
             FileNotFoundException.class
     })
@@ -51,8 +50,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             UserAlreadyExistsException.class,
             SubscriptionAlreadyExistsException.class,
             LikeAlreadyExistsException.class,
-            RepostAlreadyExistsException.class,
-            TopicSubscriptionAlreadyExistsException.class
+            RepostAlreadyExistsException.class
     })
     public ResponseEntity<ApiErrorResponse> alreadyExistsHandler(RuntimeException exception, HttpServletRequest request) {
         HttpStatus status = HttpStatus.CONFLICT;

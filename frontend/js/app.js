@@ -881,32 +881,6 @@ async function bindMe() {
         }
     });
 
-    const topicsToggle = document.querySelector("#topics-toggle");
-    topicsToggle.addEventListener("click", () => {
-        const checks = document.querySelector("#topics");
-        checks.hidden = !checks.hidden;
-        topicsToggle.classList.toggle("open", !checks.hidden);
-    });
-    const subscribed = new Set((await api("/api/v1/topicsSub/me")).map((item) => item.category));
-    const checks = document.querySelector("#topics");
-    for (const category of CATEGORIES) {
-        const field = document.createElement("label");
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.value = category;
-        input.checked = subscribed.has(category);
-        input.addEventListener("change", async () => {
-            try {
-                await api("/api/v1/topicsSub?postCategory=" + category, { method: input.checked ? "POST" : "DELETE" });
-            } catch (error) {
-                input.checked = !input.checked;
-                showError(error);
-            }
-        });
-        field.append(input, document.createTextNode(" " + label(category)));
-        checks.append(field);
-    }
-
     await bindProfileTabs(me.id);
 }
 

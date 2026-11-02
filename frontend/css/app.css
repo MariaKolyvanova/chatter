@@ -93,7 +93,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .nav a.active { font-weight: 700; }
 .nav svg { width: 26px; height: 26px; fill: currentColor; }
 
-.composer, .post, .profile-head, .panel {
+.composer, .post, .profile-head {
     padding: 12px 16px;
     border-bottom: 1px solid var(--line);
 }
@@ -379,32 +379,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .info:hover .info-tip, .info:focus .info-tip { display: block; }
 .card .muted a { color: var(--blue); font-weight: 700; }
-.topics-toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    border: 0;
-    background: transparent;
-    padding: 0;
-    font-weight: 700;
-    text-align: left;
-    cursor: pointer;
-}
-.chevron { display: inline-block; color: var(--muted); transition: transform 0.15s; }
-.topics-toggle.open .chevron { transform: rotate(90deg); }
-.topics-toggle:hover { color: var(--blue); }
-.checks[hidden] { display: none; }
-.checks { display: flex; flex-wrap: wrap; gap: 8px; }
-.checks label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 6px 12px;
-    font-weight: 600;
-}
 
 .auth {
     min-height: 100vh;

@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Locale;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,15 +32,16 @@ public class AuthService {
     }
 
     public AuthResponse login(String username, String password) {
+        String normalized = username.toLowerCase(Locale.ROOT);
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(username, password));
+                    new UsernamePasswordAuthenticationToken(normalized, password));
             SecurityUser user = (SecurityUser) authentication.getPrincipal();
             log.info("User {} logged in", user.getId());
 
             return new AuthResponse(jwtService.create(user), "Bearer");
         } catch (AuthenticationException exception) {
-            log.warn("Login failed for username {}", username);
+            log.warn("Login failed for username {}", normalized);
             throw exception;
         }
     }

@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import static com.kolyvanova.chatter.image.FileService.DEFAULT_AVATAR_KEY;
@@ -33,12 +34,14 @@ public class UserService {
 
     @Transactional
     public UserReadDto create(UserCreateDto dto){
+        String username = dto.username().toLowerCase(Locale.ROOT);
         if (userRepository.existsByEmail(dto.email()))
             throw new UserAlreadyExistsException("Email is already registered");
-        if (userRepository.existsByUsername(dto.username()))
+        if (userRepository.existsByUsername(username))
             throw new UserAlreadyExistsException("Username is already taken");
 
         User user = userMapper.toEntity(dto);
+        user.setUsername(username);
         user.setPasswordHash(passwordEncoder.encode(dto.password()));
         user.setRole(UserRole.USER);
         user.setStatus(UserStatus.ACTIVE);
@@ -66,7 +69,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserPublicReadDto findByUsername(String username) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUsername(username.toLowerCase(Locale.ROOT))
                 .orElseThrow(() -> new UserNotFoundException(username));
 
         return  userMapper.toPublicDto(user);
@@ -85,12 +88,14 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
 
+        String username = dto.username().toLowerCase(Locale.ROOT);
         if (userRepository.existsByEmailAndIdNot(dto.email(), id))
             throw new UserAlreadyExistsException("Email is already registered");
-        if (userRepository.existsByUsernameAndIdNot(dto.username(), id))
+        if (userRepository.existsByUsernameAndIdNot(username, id))
             throw new UserAlreadyExistsException("Username is already taken");
 
         userMapper.updateEntity(dto, user);
+        user.setUsername(username);
         userRepository.save(user);
         log.info("Updated user {}", id);
 

@@ -2,7 +2,6 @@ package com.kolyvanova.chatter.user;
 
 import com.kolyvanova.chatter.support.AbstractControllerTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
@@ -14,6 +13,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class UserRestControllerTest extends AbstractControllerTest {
@@ -126,18 +126,15 @@ class UserRestControllerTest extends AbstractControllerTest {
     }
 
     @Test
-    void newUserReceivesTheDefaultAvatar() throws Exception {
-        UserReadDto user = createUser("default_avatar");
-        byte[] png = new ClassPathResource("avatar/default.png").getContentAsByteArray();
+    void newUserHasNoAvatar() throws Exception {
+        UserReadDto user = createUser("no_avatar");
 
         mockMvc.perform(get("/api/v1/users/me").with(asUser(user.id())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.avatarKey").value("avatar/default.png"));
+                .andExpect(jsonPath("$.avatarKey").value(nullValue()));
 
         mockMvc.perform(get("/api/v1/users/{id}/avatar", user.id()))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType("image/png"))
-                .andExpect(content().bytes(png));
+                .andExpect(status().isNotFound());
     }
 
     @Test

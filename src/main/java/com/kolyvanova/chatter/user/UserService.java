@@ -20,8 +20,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-import static com.kolyvanova.chatter.image.FileService.DEFAULT_AVATAR_KEY;
-
 @Slf4j
 @RequiredArgsConstructor
 @Service
@@ -45,7 +43,6 @@ public class UserService {
         user.setPasswordHash(passwordEncoder.encode(dto.password()));
         user.setRole(UserRole.USER);
         user.setStatus(UserStatus.ACTIVE);
-        user.setAvatarKey(DEFAULT_AVATAR_KEY);
 
         User savedUser = userRepository.save(user);
         log.info("Created user {}", savedUser.getId());
@@ -106,6 +103,9 @@ public class UserService {
     public ImageResponse loadAvatar(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
+        if (user.getAvatarKey() == null) {
+            throw new ImageNotFoundException("avatar");
+        }
         return fileService.load(user.getAvatarKey());
     }
 

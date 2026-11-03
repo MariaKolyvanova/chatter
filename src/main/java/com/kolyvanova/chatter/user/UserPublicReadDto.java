@@ -1,5 +1,6 @@
 package com.kolyvanova.chatter.user;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record UserPublicReadDto(
@@ -8,6 +9,7 @@ public record UserPublicReadDto(
         String displayName,
         String bio,
         String location,
-        String avatarKey
+        String avatarKey,
+        LocalDate birthDate
 ) {
 }

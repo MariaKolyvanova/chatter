@@ -21,7 +21,7 @@ function showError(error) {
         notice.className = "notice";
         host.prepend(notice);
     }
-    notice.textContent = error.message || "Request failed";
+    notice.textContent = error.message || t("error.request-failed");
 }
 
 function requireAuth() {
@@ -50,9 +50,9 @@ function isAdmin() {
 }
 
 function roleName(role) {
-    if (role === "ADMIN") return "Admin";
-    if (role === "MODERATOR") return "Moderator";
-    return "User";
+    if (role === "ADMIN") return t("role.ADMIN");
+    if (role === "MODERATOR") return t("role.MODERATOR");
+    return t("role.USER");
 }
 
 function roleMark(role) {
@@ -102,7 +102,7 @@ function settingsMenu(items) {
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.className = "more-btn";
-    toggle.setAttribute("aria-label", "Settings");
+    toggle.setAttribute("aria-label", t("action.settings"));
     toggle.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.47.47 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6z"/></svg>';
     const menu = document.createElement("div");
     menu.className = "menu";
@@ -135,8 +135,10 @@ function bindModerationNav() {
     link.href = "moderation.html";
     link.dataset.moderation = "";
     if (document.body.dataset.page === "moderation") link.classList.add("active");
-    link.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 4.5 3.2 7.6 8 9.5 4.8-1.9 8-5 8-9.5V6z"/></svg><span>Moderation</span>';
-    nav.insertBefore(link, nav.querySelector(".nav-logout"));
+    link.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 4.5 3.2 7.6 8 9.5 4.8-1.9 8-5 8-9.5V6z"/></svg><span>' + t("nav.moderation") + '</span>';
+    const profile = nav.querySelector('a[href="me.html"]');
+    if (profile) profile.after(link);
+    else nav.insertBefore(link, nav.querySelector(".lang-switch"));
 }
 
 function bindLogout() {
@@ -145,7 +147,7 @@ function bindLogout() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "nav-logout";
-    button.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5v-2H5V5h5zm4.5 3.5-1.4 1.4 2.6 2.6H8v2h7.7l-2.6 2.6 1.4 1.4L20 12z"/></svg><span>Log out</span>';
+    button.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5v-2H5V5h5zm4.5 3.5-1.4 1.4 2.6 2.6H8v2h7.7l-2.6 2.6 1.4 1.4L20 12z"/></svg><span>' + t("nav.logout") + '</span>';
     button.addEventListener("click", () => {
         localStorage.removeItem("token");
         location.href = "login.html";
@@ -204,7 +206,8 @@ async function userById(id) {
 
 function label(category) {
     if (!category) return "";
-    return category.charAt(0) + category.slice(1).toLowerCase();
+    const fallback = category.charAt(0) + category.slice(1).toLowerCase();
+    return t("category." + category, null, fallback);
 }
 
 function colorFor(name) {
@@ -242,14 +245,14 @@ function formatBirthDate(value) {
     if (!value) return "";
     const date = new Date(String(value).length === 10 ? value + "T00:00:00" : value);
     if (Number.isNaN(date.getTime())) return String(value);
-    return date.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+    return date.toLocaleDateString(localeTag(), { day: "numeric", month: "long", year: "numeric" });
 }
 
 function when(iso, exact) {
     const date = new Date(iso);
-    if (!iso || Number.isNaN(date.getTime())) return "now";
+    if (!iso || Number.isNaN(date.getTime())) return t("time.now");
     if (exact) {
-        return date.toLocaleString(undefined, {
+        return date.toLocaleString(localeTag(), {
             day: "numeric",
             month: "short",
             year: "numeric",
@@ -258,7 +261,7 @@ function when(iso, exact) {
         });
     }
     const minutes = Math.round((Date.now() - date.getTime()) / 60000);
-    if (minutes < 1) return "now";
+    if (minutes < 1) return t("time.now");
     if (minutes < 60) return minutes + "m";
     const hours = Math.round(minutes / 60);
     if (hours < 24) return hours + "h";
@@ -267,7 +270,7 @@ function when(iso, exact) {
 
 function paintFollow(button, authorId) {
     const on = followingIds.has(authorId);
-    button.textContent = on ? "Following" : "Follow";
+    button.textContent = on ? t("action.following") : t("action.follow");
     button.className = on ? "btn secondary" : "btn";
 }
 
@@ -383,7 +386,7 @@ async function showPeople(title, users) {
     if (users.length === 0) {
         const empty = document.createElement("p");
         empty.className = "muted";
-        empty.textContent = "No one yet.";
+        empty.textContent = t("empty.none");
         card.append(empty);
     } else {
         for (const user of users) card.append(personRow(user));
@@ -391,7 +394,7 @@ async function showPeople(title, users) {
     const close = document.createElement("button");
     close.type = "button";
     close.className = "btn secondary";
-    close.textContent = "Close";
+    close.textContent = t("action.close");
     close.addEventListener("click", () => {
         dialog.hidden = true;
     });
@@ -404,14 +407,14 @@ async function showLikers(postId) {
     const page = await api("/api/v1/likes/by-post?postId=" + postId + "&size=50");
     const people = [];
     for (const like of page.content) people.push(await userById(like.userId));
-    await showPeople("Liked by", people);
+    await showPeople(t("post.liked-by"), people);
 }
 
 async function showReposters(postId) {
     const page = await api("/api/v1/reposts/by-post?postId=" + postId + "&size=50");
     const people = [];
     for (const repost of page.content) people.push(await userById(repost.userId));
-    await showPeople("Reposted by", people);
+    await showPeople(t("post.reposted-by"), people);
 }
 
 function countButton(value, onClick) {
@@ -446,7 +449,7 @@ function renderPost(post, author, linked) {
     if (post.status === "HIDDEN") {
         const badge = document.createElement("span");
         badge.className = "badge";
-        badge.textContent = "Hidden";
+        badge.textContent = t("post.hidden");
         who.append(badge);
     }
     header.append(who);
@@ -467,7 +470,7 @@ function renderPost(post, author, linked) {
     replyLink.className = "hit";
     replyLink.href = "post.html?id=" + post.id;
     replyLink.append(svg(ICONS.reply));
-    replyLink.setAttribute("aria-label", "Reply");
+    replyLink.setAttribute("aria-label", t("aria.reply"));
     const replyCount = document.createElement("span");
     replyCount.className = "count";
     replyCount.textContent = replyCounts.get(post.id) || 0;
@@ -481,7 +484,7 @@ function renderPost(post, author, linked) {
         toggle.type = "button";
         toggle.className = "hit";
         toggle.append(svg(ICONS.repost));
-        toggle.setAttribute("aria-label", "Repost");
+        toggle.setAttribute("aria-label", t("aria.repost"));
         toggle.addEventListener("click", async () => {
             try {
                 if (repostByPost.has(post.id)) {
@@ -514,7 +517,7 @@ function renderPost(post, author, linked) {
     likeToggle.type = "button";
     likeToggle.className = "hit";
     likeToggle.append(svg(likedIds.has(post.id) ? ICONS.liked : ICONS.like));
-    likeToggle.setAttribute("aria-label", "Like");
+    likeToggle.setAttribute("aria-label", t("aria.like"));
     const likeCount = countButton(likeCounts.get(post.id) || 0, () => showLikers(post.id));
     likeToggle.addEventListener("click", async () => {
         try {
@@ -552,12 +555,12 @@ function renderPost(post, author, linked) {
         const parent = document.createElement("a");
         parent.className = "parent-link";
         parent.href = "post.html?id=" + post.replyToId;
-        parent.textContent = "Replying to";
+        parent.textContent = t("post.replying-to");
         body.append(parent);
         api("/api/v1/posts/" + post.replyToId + "?countView=false")
             .then((target) => userById(target.authorId))
             .then((user) => {
-                parent.textContent = "Replying to @" + user.username;
+                parent.textContent = t("post.replying-to") + " @" + user.username;
             })
             .catch(() => {});
     }
@@ -579,7 +582,7 @@ function postMenu(post, article, linked, text) {
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.className = "more-btn";
-    toggle.setAttribute("aria-label", "More");
+    toggle.setAttribute("aria-label", t("aria.more"));
     toggle.append(svg(ICONS.more));
     const menu = document.createElement("div");
     menu.className = "menu";
@@ -587,10 +590,10 @@ function postMenu(post, article, linked, text) {
     if (own) {
         const edit = document.createElement("button");
         edit.type = "button";
-        edit.textContent = "Edit";
+        edit.textContent = t("action.edit");
         const remove = document.createElement("button");
         remove.type = "button";
-        remove.textContent = "Delete";
+        remove.textContent = t("action.delete");
         edit.addEventListener("click", () => {
             menu.hidden = true;
             editPost(post, text);
@@ -604,7 +607,7 @@ function postMenu(post, article, linked, text) {
     if (canModerate()) {
         const visibility = document.createElement("button");
         visibility.type = "button";
-        visibility.textContent = post.status === "HIDDEN" ? "Show" : "Hide";
+        visibility.textContent = post.status === "HIDDEN" ? t("action.show") : t("action.hide");
         visibility.addEventListener("click", () => {
             menu.hidden = true;
             setPostVisibility(post, article, visibility).catch(showError);
@@ -623,17 +626,17 @@ function postMenu(post, article, linked, text) {
 
 async function setPostVisibility(post, article, button) {
     const hide = post.status !== "HIDDEN";
-    if (!confirm(hide ? "Hide this post?" : "Show this post?")) return;
+    if (!confirm(hide ? t("confirm.hide") : t("confirm.show"))) return;
     await api("/api/v1/posts/" + post.id + (hide ? "/hide" : "/show"), { method: "PUT" });
     post.status = hide ? "HIDDEN" : "PUBLISHED";
-    button.textContent = hide ? "Show" : "Hide";
+    button.textContent = hide ? t("action.show") : t("action.hide");
     const who = article.querySelector(".who");
     let badge = who.querySelector(".badge");
     if (hide) {
         if (!badge) {
             badge = document.createElement("span");
             badge.className = "badge";
-            badge.textContent = "Hidden";
+            badge.textContent = t("post.hidden");
             who.append(badge);
         }
     } else if (badge) {
@@ -658,11 +661,11 @@ function editPost(post, text) {
     const save = document.createElement("button");
     save.type = "button";
     save.className = "btn";
-    save.textContent = "Save";
+    save.textContent = t("action.save");
     const cancel = document.createElement("button");
     cancel.type = "button";
     cancel.className = "btn secondary";
-    cancel.textContent = "Cancel";
+    cancel.textContent = t("action.cancel");
     const bar = document.createElement("div");
     bar.className = "row";
     bar.append(save, cancel);
@@ -683,7 +686,7 @@ function editPost(post, text) {
 }
 
 async function deletePost(post, article, linked) {
-    if (!confirm("Delete this post?")) return;
+    if (!confirm(t("confirm.delete-post"))) return;
     await api("/api/v1/posts/" + post.id, { method: "DELETE" });
     if (linked) article.remove();
     else location.href = "index.html";
@@ -717,7 +720,7 @@ async function bindProfileTabs(userId) {
         menu.className = "menu";
         menu.id = "posts-menu";
         menu.hidden = true;
-        for (const [value, text] of [["all", "All posts"], ["published", "Public"], ["hidden", "Hidden"]]) {
+        for (const [value, text] of [["all", t("tab.all-posts")], ["published", t("tab.public")], ["hidden", t("tab.hidden")]]) {
             const item = document.createElement("button");
             item.type = "button";
             item.dataset.postFilter = value;
@@ -725,7 +728,7 @@ async function bindProfileTabs(userId) {
             menu.append(item);
         }
         wrap.append(menu);
-        postsButton.textContent = caret("All posts");
+        postsButton.textContent = caret(t("tab.all-posts"));
     }
 
     async function select(tab) {
@@ -817,7 +820,7 @@ function bindRegister() {
 async function loadFollowing(aside) {
     aside.replaceChildren();
     const title = document.createElement("h2");
-    title.textContent = "Following";
+    title.textContent = t("side.following");
     aside.append(title);
     for (const id of followingIds) {
         aside.append(personRow(await userById(id), false));
@@ -829,6 +832,14 @@ async function bindFeed() {
     const empty = document.querySelector("#empty");
     const menu = document.querySelector("#category-menu");
     document.querySelector("#composer-avatar").replaceWith(avatarNode(me));
+    const categorySelect = document.querySelector("#composer select[name=category]");
+    if (categorySelect) {
+        for (const option of categorySelect.options) {
+            const value = CATEGORIES.includes(option.value) ? option.value : option.textContent;
+            option.value = value;
+            option.textContent = label(value);
+        }
+    }
 
     menu.replaceChildren();
     for (const category of CATEGORIES) {
@@ -846,7 +857,7 @@ async function bindFeed() {
         });
         const categoriesTab = document.querySelector("#categories-tab");
         categoriesTab.classList.toggle("active", category);
-        categoriesTab.textContent = caret(category ? label(filter) : "Categories");
+        categoriesTab.textContent = caret(category ? label(filter) : t("tab.categories"));
         menu.querySelectorAll("button").forEach((button) => {
             button.classList.toggle("active", button.dataset.filter === filter);
         });
@@ -882,6 +893,9 @@ async function bindFeed() {
                 body: { content: data.get("content"), category: data.get("category") },
             });
             composer.reset();
+            if (categorySelect) {
+                for (const option of categorySelect.options) option.textContent = label(option.value);
+            }
             await select("all");
         } catch (error) {
             showError(error);
@@ -947,7 +961,7 @@ async function bindProfile() {
     info.append(profileTitle(user.displayName, user.role), handle, bio, facts);
     if (isAdmin() && user.role) {
         head.append(settingsMenu([
-            { label: "Change role", onClick: () => togglePanel("#role-form") },
+            { label: t("menu.change-role"), onClick: () => togglePanel("#role-form") },
         ]));
         bindRoleForm(user);
     }
@@ -980,10 +994,10 @@ async function bindMe() {
     details.textContent = [me.email, me.location, formatBirthDate(me.birthDate)].filter(Boolean).join(" · ");
     info.append(profileTitle(me.displayName, me.role), handle, bio, details);
     head.append(info, settingsMenu([
-        { label: "Edit profile", onClick: () => togglePanel("#edit-form") },
-        { label: "Change password", onClick: () => togglePanel("#password-form") },
-        { label: "Change avatar", onClick: () => togglePanel("#avatar-form") },
-        { label: "Delete account", onClick: () => deleteAccount() },
+        { label: t("menu.edit-profile"), onClick: () => togglePanel("#edit-form") },
+        { label: t("menu.change-password"), onClick: () => togglePanel("#password-form") },
+        { label: t("menu.change-avatar"), onClick: () => togglePanel("#avatar-form") },
+        { label: t("menu.delete-account"), onClick: () => deleteAccount() },
     ]));
 
     const editForm = document.querySelector("#edit-form");
@@ -1063,7 +1077,7 @@ function staffList(title, people) {
     if (people.length === 0) {
         const none = document.createElement("p");
         none.className = "empty";
-        none.textContent = "No one yet.";
+        none.textContent = t("empty.none");
         list.append(none);
     } else {
         list.append(...people.map((user) => personRow(user, true)));
@@ -1073,7 +1087,7 @@ function staffList(title, people) {
 }
 
 function deleteAccount() {
-    if (!confirm("Delete your account? This cannot be undone.")) return;
+    if (!confirm(t("confirm.delete-account"))) return;
     api("/api/v1/users/me", { method: "DELETE" })
         .then(() => {
             localStorage.removeItem("token");
@@ -1089,11 +1103,11 @@ function ensureRoleForm() {
     form.id = "role-form";
     form.className = "form";
     form.hidden = true;
-    form.innerHTML = '<label><span class="field-name">Role</span><select name="role" required>'
-        + '<option value="USER">User</option><option value="MODERATOR">Moderator</option><option value="ADMIN">Admin</option>'
-        + '</select></label><p class="muted">The new role takes effect on their next login.</p>'
-        + '<div class="row form-actions"><button class="btn secondary" type="button" data-cancel>Cancel</button>'
-        + '<button class="btn" type="submit">Save</button></div>';
+    form.innerHTML = '<label><span class="field-name">' + t("field.role") + '</span><select name="role" required>'
+        + '<option value="USER">' + t("role.USER") + '</option><option value="MODERATOR">' + t("role.MODERATOR") + '</option><option value="ADMIN">' + t("role.ADMIN") + '</option>'
+        + '</select></label><p class="muted">' + t("role.hint") + '</p>'
+        + '<div class="row form-actions"><button class="btn secondary" type="button" data-cancel>' + t("action.cancel") + '</button>'
+        + '<button class="btn" type="submit">' + t("action.save") + '</button></div>';
     document.querySelector("#profile-tabs").before(form);
     return form;
 }
@@ -1112,7 +1126,7 @@ function bindRoleForm(user) {
             form.hidden = true;
             return;
         }
-        if (!confirm("Change this role to " + roleName(role) + "? It takes effect on their next login.")) return;
+        if (!confirm(t("confirm.role", { role: roleName(role) }))) return;
         try {
             await api("/api/v1/users/" + user.id + "/role?role=" + role, { method: "PUT" });
             user.role = role;
@@ -1140,12 +1154,12 @@ async function bindModeration() {
         const button = document.createElement("button");
         button.type = "button";
         button.dataset.moderation = "staff";
-        button.textContent = "Roles";
+        button.textContent = t("tab.roles");
         tabs.append(button);
     }
 
     function paintPostsButton() {
-        const labels = { all: "All posts", published: "Public", hidden: "Hidden" };
+        const labels = { all: t("tab.all-posts"), published: t("tab.public"), hidden: t("tab.hidden") };
         postsButton.textContent = caret(labels[visibility]);
     }
 
@@ -1160,8 +1174,8 @@ async function bindModeration() {
             const moderators = await api("/api/v1/users?role=MODERATOR&size=100&sort=username,asc");
             const admins = await api("/api/v1/users?role=ADMIN&size=100&sort=username,asc");
             staff.replaceChildren(
-                staffList("Moderators", moderators.content),
-                staffList("Admins", admins.content)
+                staffList(t("side.moderators"), moderators.content),
+                staffList(t("side.admins"), admins.content)
             );
             empty.hidden = true;
             return;
@@ -1193,6 +1207,7 @@ async function bindModeration() {
         }
         select(button.dataset.moderation).catch(showError);
     });
+    paintPostsButton();
     await select("posts");
     await loadFollowing(document.querySelector(".side"));
 }

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="favicon.ico" sizes="48x48">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <title>Chatter</title>
+    <title data-i18n="title.home">Chatter</title>
     <link rel="stylesheet" href="css/app.css">
 </head>
 <body data-page="feed">
@@ -14,15 +14,15 @@
         <a class="brand" href="index.html">Chatter</a>
         <a class="active" href="index.html">
             <svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>
-            <span>Home</span>
+            <span data-i18n="nav.home">Home</span>
         </a>
         <a href="people.html">
             <svg viewBox="0 0 24 24"><path d="M10 4a6 6 0 1 0 3.6 10.8l4.3 4.3 1.4-1.4-4.3-4.3A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg>
-            <span>People</span>
+            <span data-i18n="nav.people">People</span>
         </a>
         <a href="me.html">
             <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/></svg>
-            <span>Profile</span>
+            <span data-i18n="nav.profile">Profile</span>
         </a>
     </aside>
 
@@ -30,47 +30,48 @@
         <form class="composer" id="composer">
             <span class="avatar" id="composer-avatar">?</span>
             <div>
-                <textarea name="content" maxlength="280" placeholder="What's new" required></textarea>
+                <textarea name="content" maxlength="280" data-i18n-placeholder="composer.placeholder" placeholder="What's new" required></textarea>
                 <div class="composer-bar">
-                    <select name="category" aria-label="Category">
-                        <option>GENERAL</option>
-                        <option>NEWS</option>
-                        <option>POLITICS</option>
-                        <option>TECHNOLOGY</option>
-                        <option>SCIENCE</option>
-                        <option>EDUCATION</option>
-                        <option>BUSINESS</option>
-                        <option>SPORTS</option>
-                        <option>ENTERTAINMENT</option>
-                        <option>MUSIC</option>
-                        <option>GAMING</option>
-                        <option>ART</option>
-                        <option>FASHION</option>
-                        <option>FOOD</option>
-                        <option>TRAVEL</option>
-                        <option>HEALTH</option>
-                        <option>NATURE</option>
-                        <option>ANIMALS</option>
-                        <option>OTHER</option>
+                    <select name="category" data-i18n-aria="field.category" aria-label="Category">
+                        <option value="GENERAL">GENERAL</option>
+                        <option value="NEWS">NEWS</option>
+                        <option value="POLITICS">POLITICS</option>
+                        <option value="TECHNOLOGY">TECHNOLOGY</option>
+                        <option value="SCIENCE">SCIENCE</option>
+                        <option value="EDUCATION">EDUCATION</option>
+                        <option value="BUSINESS">BUSINESS</option>
+                        <option value="SPORTS">SPORTS</option>
+                        <option value="ENTERTAINMENT">ENTERTAINMENT</option>
+                        <option value="MUSIC">MUSIC</option>
+                        <option value="GAMING">GAMING</option>
+                        <option value="ART">ART</option>
+                        <option value="FASHION">FASHION</option>
+                        <option value="FOOD">FOOD</option>
+                        <option value="TRAVEL">TRAVEL</option>
+                        <option value="HEALTH">HEALTH</option>
+                        <option value="NATURE">NATURE</option>
+                        <option value="ANIMALS">ANIMALS</option>
+                        <option value="OTHER">OTHER</option>
                     </select>
-                    <button class="btn" type="submit">Post</button>
+                    <button class="btn" type="submit" data-i18n="action.post">Post</button>
                 </div>
             </div>
         </form>
         <div class="tabs">
-            <button class="active" type="button" data-filter="all">All</button>
-            <button type="button" data-filter="following">Following</button>
+            <button class="active" type="button" data-filter="all" data-i18n="tab.all">All</button>
+            <button type="button" data-filter="following" data-i18n="tab.following">Following</button>
             <div class="tab-menu">
-                <button type="button" id="categories-tab">Categories ▾</button>
+                <button type="button" id="categories-tab" data-i18n="tab.categories">Categories</button>
                 <div class="menu" id="category-menu" hidden></div>
             </div>
         </div>
         <div id="posts"></div>
-        <p class="empty" id="empty" hidden>Nothing here yet.</p>
+        <p class="empty" id="empty" data-i18n="empty.nothing" hidden>Nothing here yet.</p>
     </main>
     <aside class="side" id="following"></aside>
 </div>
 <script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
 </body>

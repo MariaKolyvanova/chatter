@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="favicon.ico" sizes="48x48">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <title>Profile · Chatter</title>
+    <title data-i18n="title.profile">Profile · Chatter</title>
     <link rel="stylesheet" href="css/app.css">
 </head>
 <body data-page="me">
@@ -14,64 +14,65 @@
         <a class="brand" href="index.html">Chatter</a>
         <a href="index.html">
             <svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>
-            <span>Home</span>
+            <span data-i18n="nav.home">Home</span>
         </a>
         <a href="people.html">
             <svg viewBox="0 0 24 24"><path d="M10 4a6 6 0 1 0 3.6 10.8l4.3 4.3 1.4-1.4-4.3-4.3A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg>
-            <span>People</span>
+            <span data-i18n="nav.people">People</span>
         </a>
         <a class="active" href="me.html">
             <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/></svg>
-            <span>Profile</span>
+            <span data-i18n="nav.profile">Profile</span>
         </a>
     </aside>
     <main class="feed">
         <header class="profile-head" id="profile"></header>
         <form id="edit-form" class="form" hidden>
-            <label><span class="field-name">Username</span><span class="with-info"><input name="username" minlength="3" maxlength="50" pattern="[A-Za-z0-9_]{3,50}" required><span class="info" tabindex="0">i<span class="info-tip">3–50 characters. Latin letters, digits and underscore. Saved in lowercase.</span></span></span></label>
-            <label><span class="field-name">Email</span><span class="with-info"><input name="email" type="email" maxlength="255" required><span class="info" tabindex="0">i<span class="info-tip">A valid email, up to 255 characters.</span></span></span></label>
-            <label><span class="field-name">Display name</span><span class="with-info"><input name="displayName" minlength="3" maxlength="100" required><span class="info" tabindex="0">i<span class="info-tip">3–100 characters.</span></span></span></label>
-            <label><span class="field-name">Bio</span><span class="with-info"><textarea name="bio" rows="3"></textarea><span class="info" tabindex="0">i<span class="info-tip">Optional.</span></span></span></label>
-            <label><span class="field-name">Location</span><span class="with-info"><input name="location" maxlength="100"><span class="info" tabindex="0">i<span class="info-tip">Optional. Up to 100 characters.</span></span></span></label>
-            <label><span class="field-name">Birth date</span><span class="with-info"><input name="birthDate" type="date" required><span class="info" tabindex="0">i<span class="info-tip">A date in the past.</span></span></span></label>
+            <label><span class="field-name"><span data-i18n="field.username">Username</span></span><span class="with-info"><input name="username" minlength="3" maxlength="50" pattern="[A-Za-z0-9_]{3,50}" required><span class="info" tabindex="0">i<span class="info-tip" data-i18n="tip.username">3–50 characters. Latin letters, digits and underscore. Saved in lowercase.</span></span></span></label>
+            <label><span class="field-name"><span data-i18n="field.email">Email</span></span><span class="with-info"><input name="email" type="email" maxlength="255" required><span class="info" tabindex="0">i<span class="info-tip" data-i18n="tip.email">A valid email, up to 255 characters.</span></span></span></label>
+            <label><span class="field-name"><span data-i18n="field.display-name">Display name</span></span><span class="with-info"><input name="displayName" minlength="3" maxlength="100" required><span class="info" tabindex="0">i<span class="info-tip" data-i18n="tip.display-name">3–100 characters.</span></span></span></label>
+            <label><span class="field-name"><span data-i18n="field.bio">Bio</span></span><span class="with-info"><textarea name="bio" rows="3"></textarea><span class="info" tabindex="0">i<span class="info-tip" data-i18n="tip.bio">Optional.</span></span></span></label>
+            <label><span class="field-name"><span data-i18n="field.location">Location</span></span><span class="with-info"><input name="location" maxlength="100"><span class="info" tabindex="0">i<span class="info-tip" data-i18n="tip.location">Optional. Up to 100 characters.</span></span></span></label>
+            <label><span class="field-name"><span data-i18n="field.birth-date">Birth date</span></span><span class="with-info"><input name="birthDate" type="date" required><span class="info" tabindex="0">i<span class="info-tip" data-i18n="tip.birth-date">A date in the past.</span></span></span></label>
             <div class="row form-actions">
-                <button class="btn secondary" type="button" data-cancel>Cancel</button>
-                <button class="btn" type="submit">Save</button>
+                <button class="btn secondary" type="button" data-cancel data-i18n="action.cancel">Cancel</button>
+                <button class="btn" type="submit" data-i18n="action.save">Save</button>
             </div>
         </form>
         <form id="password-form" class="form" hidden>
-            <label>Current password <input name="currentPassword" type="password" required></label>
-            <label>New password <input name="newPassword" type="password" minlength="8" maxlength="100" required></label>
+            <label><span data-i18n="field.current-password">Current password</span> <input name="currentPassword" type="password" required></label>
+            <label><span data-i18n="field.new-password">New password</span> <input name="newPassword" type="password" minlength="8" maxlength="100" required></label>
             <div class="row form-actions">
-                <button class="btn secondary" type="button" data-cancel>Cancel</button>
-                <button class="btn" type="submit">Change password</button>
+                <button class="btn secondary" type="button" data-cancel data-i18n="action.cancel">Cancel</button>
+                <button class="btn" type="submit" data-i18n="action.change-password">Change password</button>
             </div>
         </form>
         <form id="avatar-form" class="form" hidden>
             <label>
-                <span class="field-name">Avatar</span>
+                <span class="field-name" data-i18n="field.avatar">Avatar</span>
                 <span class="file-field">
                     <input name="file" type="file" accept="image/jpeg,image/png,image/heif" required>
-                    <span class="info" tabindex="0">i<span class="info-tip">JPEG, PNG or HEIF. Maximum 5 MB.</span></span>
+                    <span class="info" tabindex="0">i<span class="info-tip" data-i18n="tip.avatar">JPEG, PNG or HEIF. Maximum 5 MB.</span></span>
                 </span>
             </label>
             <div class="row form-actions">
-                <button class="btn secondary" type="button" data-cancel>Cancel</button>
-                <button class="btn" type="submit">Save avatar</button>
+                <button class="btn secondary" type="button" data-cancel data-i18n="action.cancel">Cancel</button>
+                <button class="btn" type="submit" data-i18n="action.save-avatar">Save avatar</button>
             </div>
         </form>
         <div class="tabs" id="profile-tabs">
-            <button class="active" type="button" data-profile-tab="posts">Posts</button>
-            <button type="button" data-profile-tab="replies">Replies</button>
-            <button type="button" data-profile-tab="likes">Likes</button>
-            <button type="button" data-profile-tab="reposts">Reposts</button>
+            <button class="active" type="button" data-profile-tab="posts" data-i18n="tab.posts">Posts</button>
+            <button type="button" data-profile-tab="replies" data-i18n="tab.replies">Replies</button>
+            <button type="button" data-profile-tab="likes" data-i18n="tab.likes">Likes</button>
+            <button type="button" data-profile-tab="reposts" data-i18n="tab.reposts">Reposts</button>
         </div>
         <div id="posts"></div>
-        <p class="empty" id="empty" hidden>Nothing here yet.</p>
+        <p class="empty" id="empty" data-i18n="empty.nothing" hidden>Nothing here yet.</p>
     </main>
     <aside class="side"></aside>
 </div>
 <script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
 </body>

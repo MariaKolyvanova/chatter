@@ -13,8 +13,9 @@ async function api(path, { method = "GET", body, form } = {}) {
     const text = await response.text();
     const data = text ? JSON.parse(text) : null;
     if (!response.ok) {
-        const error = new Error(data && data.message ? data.message : "Request failed");
+        const error = new Error(translateError(data));
         error.status = response.status;
+        error.code = data && data.code;
         throw error;
     }
     return data;

@@ -38,12 +38,39 @@ button, input, select, textarea { font: inherit; color: inherit; }
     top: 0;
     height: 100vh;
 }
+.lang-switch {
+    display: flex;
+    align-items: center;
+    width: fit-content;
+    margin-top: auto;
+    margin-left: 12px;
+    margin-bottom: 8px;
+    padding: 4px;
+    background: var(--pill);
+    border-radius: 999px;
+}
+.lang-switch button {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+}
+.lang-switch button.active {
+    background: #fff;
+    color: var(--text);
+}
+.card .lang-switch { margin: 12px 16px 0; }
+.nav a[data-moderation] { margin-top: 8px; }
 .nav-logout {
     display: flex;
     align-items: center;
     gap: 16px;
     width: fit-content;
-    margin-top: auto;
+    margin-top: 0;
     padding: 12px;
     border: 0;
     border-radius: 999px;
@@ -439,9 +466,12 @@ form.reply input { flex: 1; }
     margin: 0;
     padding: 12px 16px;
     color: #8b1e1e;
+    white-space: pre-line;
 }
 
 @media (max-width: 1000px) {
     .app { grid-template-columns: 80px minmax(0, 1fr); }
     .side, .nav a span, .nav-logout span { display: none; }
+    .lang-switch { margin-left: 0; padding: 3px; }
+    .lang-switch button { padding: 6px 8px; font-size: 12px; }
 }

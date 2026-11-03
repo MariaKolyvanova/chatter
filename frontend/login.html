@@ -5,21 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="favicon.ico" sizes="48x48">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <title>Log in · Chatter</title>
+    <title data-i18n="title.login">Log in · Chatter</title>
     <link rel="stylesheet" href="css/app.css">
 </head>
 <body class="auth" data-page="login">
 <main class="card">
     <a class="brand" href="index.html">Chatter</a>
-    <h1>Log in</h1>
+    <h1 data-i18n="login.title">Log in</h1>
     <form class="form">
-        <label>Username <input name="username" autocomplete="username" required></label>
-        <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
-        <button class="btn" type="submit">Log in</button>
+        <label><span data-i18n="login.username">Username</span> <input name="username" autocomplete="username" required></label>
+        <label><span data-i18n="login.password">Password</span> <input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="btn" type="submit" data-i18n="login.submit">Log in</button>
     </form>
-    <p class="muted">No account yet? <a href="register.html">Register</a></p>
+    <p class="muted"><span data-i18n="login.no-account">No account yet?</span> <a href="register.html" data-i18n="login.register">Register</a></p>
 </main>
 <script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
 </body>

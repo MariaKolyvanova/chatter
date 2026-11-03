@@ -15,7 +15,7 @@ public class CurrentUser {
     public UUID id() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt)) {
-            throw new AccessDeniedException("not authenticated");
+            throw new AccessDeniedException("error.not-authenticated");
         }
 
         return UUID.fromString(jwt.getSubject());

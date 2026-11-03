@@ -31,10 +31,10 @@ public class LikeService {
 
     public LikeReadDto create(UUID postId, UUID userId) {
         Post post = postRepository.findByIdAndStatus(postId, PostStatus.PUBLISHED)
-                .orElseThrow(() -> new PostNotFoundException(postId));
+                .orElseThrow(() -> new PostNotFoundException());
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
+                .orElseThrow(() -> new UserNotFoundException());
 
         if (likeRepository.existsByPostIdAndUserId(postId, userId)) {
             throw new LikeAlreadyExistsException();
@@ -58,9 +58,9 @@ public class LikeService {
     @Transactional(readOnly = true)
     public LikeReadDto findById(UUID id, UUID viewerId, boolean moderator) {
         Like like = likeRepository.findById(id)
-                .orElseThrow(() -> new LikeNotFoundException(id));
+                .orElseThrow(() -> new LikeNotFoundException());
         if (!isVisible(like.getPost(), viewerId, moderator)) {
-            throw new LikeNotFoundException(id);
+            throw new LikeNotFoundException();
         }
 
         return likeMapper.toReadDto(like);
@@ -69,9 +69,9 @@ public class LikeService {
     @Transactional(readOnly = true)
     public Page<LikeReadDto> findAllByPostId(UUID postId, UUID viewerId, boolean moderator, Pageable pageable) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new PostNotFoundException(postId));
+                .orElseThrow(() -> new PostNotFoundException());
         if (!isVisible(post, viewerId, moderator)) {
-            throw new PostNotFoundException(postId);
+            throw new PostNotFoundException();
         }
 
         return likeRepository.findAllByPostId(postId, pageable)
@@ -92,7 +92,7 @@ public class LikeService {
 
     public void delete(UUID userId, UUID postId) {
         Like like = likeRepository.findByUserIdAndPostId(userId, postId)
-                .orElseThrow(() -> new LikeNotFoundException(userId, postId));
+                .orElseThrow(() -> new LikeNotFoundException());
 
         likeRepository.delete(like);
         log.info("Deleted like by user {} on post {}", userId, postId);

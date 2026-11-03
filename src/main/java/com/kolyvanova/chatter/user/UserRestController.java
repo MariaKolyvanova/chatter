@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.MessageSource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -36,7 +35,6 @@ public class UserRestController {
 
     private final UserService userService;
     private final CurrentUser currentUser;
-    private final MessageSource messageSource;
 
     @Operation(summary = "Create a user")
     @ApiResponse(responseCode = "400", description = "Request validation failed",

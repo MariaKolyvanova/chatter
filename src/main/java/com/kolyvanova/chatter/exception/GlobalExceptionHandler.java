@@ -1,12 +1,14 @@
 package com.kolyvanova.chatter.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -15,12 +17,17 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    private final ApiMessages messages;
 
     @ExceptionHandler({
             UserNotFoundException.class,
@@ -32,18 +39,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             FileNotFoundException.class
     })
     public ResponseEntity<ApiErrorResponse> notFoundHandler(RuntimeException exception, HttpServletRequest request) {
-        HttpStatus status = HttpStatus.NOT_FOUND;
-
-        ApiErrorResponse response = new ApiErrorResponse(
-                status.value(),
-                exception.getMessage(),
-                request.getRequestURI(),
-                Map.of()
-        );
-
-        return ResponseEntity
-                .status(status)
-                .body(response);
+        return response(HttpStatus.NOT_FOUND, exception.getMessage(), request);
     }
 
     @ExceptionHandler({
@@ -53,18 +49,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             RepostAlreadyExistsException.class
     })
     public ResponseEntity<ApiErrorResponse> alreadyExistsHandler(RuntimeException exception, HttpServletRequest request) {
-        HttpStatus status = HttpStatus.CONFLICT;
-
-        ApiErrorResponse response = new ApiErrorResponse(
-                status.value(),
-                exception.getMessage(),
-                request.getRequestURI(),
-                Map.of()
-        );
-
-        return ResponseEntity
-                .status(status)
-                .body(response);
+        return response(HttpStatus.CONFLICT, exception.getMessage(), request);
     }
 
     @ExceptionHandler({
@@ -72,21 +57,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             InvalidPasswordException.class,
             InvalidFileException.class
     })
-    public ResponseEntity<ApiErrorResponse> badRequestHandler(
-            RuntimeException exception,
-            HttpServletRequest request) {
-        HttpStatus status = HttpStatus.BAD_REQUEST;
-
-        ApiErrorResponse response = new ApiErrorResponse(
-                status.value(),
-                exception.getMessage(),
-                request.getRequestURI(),
-                Map.of()
-        );
-
-        return ResponseEntity
-                .status(status)
-                .body(response);
+    public ResponseEntity<ApiErrorResponse> badRequestHandler(RuntimeException exception, HttpServletRequest request) {
+        Object[] args = exception instanceof InvalidFileException file && file.args() != null
+                ? file.args()
+                : new Object[0];
+        return response(HttpStatus.BAD_REQUEST, exception.getMessage(), request, args);
     }
 
     @Override
@@ -96,55 +71,96 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             HttpStatusCode status,
             WebRequest request
     ) {
-        Map<String, String> fieldErrors = new LinkedHashMap<>();
-
+        Map<String, ApiFieldError> fieldErrors = new LinkedHashMap<>();
         for (FieldError fieldError : exception.getBindingResult().getFieldErrors()) {
-            String message = fieldError.getDefaultMessage() == null
-                    ? "Invalid value"
-                    : fieldError.getDefaultMessage();
-            fieldErrors.merge(fieldError.getField(), message,
-                    (first, next) -> first.equals(next) ? first : first + "; " + next);
+            fieldErrors.putIfAbsent(fieldError.getField(), fieldError(fieldError));
         }
 
         String path = ((ServletWebRequest) request).getRequest().getRequestURI();
-        ApiErrorResponse response = new ApiErrorResponse(
+        ApiErrorResponse body = new ApiErrorResponse(
                 status.value(),
-                "Request validation failed",
+                "error.validation",
+                messages.text("error.validation"),
+                List.of(),
                 path,
                 fieldErrors
         );
-
-        return ResponseEntity.status(status)
-                .headers(headers)
-                .body(response);
+        return ResponseEntity.status(status).headers(headers).body(body);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiErrorResponse> accessDeniedHandler(HttpServletRequest request) {
-        HttpStatus status = HttpStatus.FORBIDDEN;
-        return ResponseEntity.status(status).body(new ApiErrorResponse(
-                status.value(),
-                "Access is denied",
-                request.getRequestURI(),
-                Map.of()
-        ));
+    public ResponseEntity<ApiErrorResponse> accessDeniedHandler(
+            AccessDeniedException exception,
+            HttpServletRequest request
+    ) {
+        return response(HttpStatus.FORBIDDEN, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiErrorResponse> invalidCredentialsHandler(
+            InvalidCredentialsException exception,
+            HttpServletRequest request
+    ) {
+        return response(HttpStatus.UNAUTHORIZED, exception.getMessage(), request);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiErrorResponse> internalServerErrorHandler(
-            Exception exception,
-            HttpServletRequest request
-    ) {
+    public ResponseEntity<ApiErrorResponse> internalServerErrorHandler(Exception exception, HttpServletRequest request) {
         log.error("Unexpected error while processing request {}", request.getRequestURI(), exception);
+        return response(HttpStatus.INTERNAL_SERVER_ERROR, "error.unexpected", request);
+    }
 
-        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
-        ApiErrorResponse response = new ApiErrorResponse(
+    private ResponseEntity<ApiErrorResponse> response(
+            HttpStatus status,
+            String rawCode,
+            HttpServletRequest request,
+            Object... args
+    ) {
+        String code = messages.code(rawCode);
+        List<String> values = new ArrayList<>();
+        if (args != null) {
+            for (Object arg : args) {
+                if (arg != null) {
+                    values.add(String.valueOf(arg));
+                }
+            }
+        }
+        ApiErrorResponse body = new ApiErrorResponse(
                 status.value(),
-                "An unexpected error occurred",
+                code,
+                messages.text(code, args),
+                values,
                 request.getRequestURI(),
                 Map.of()
         );
+        return ResponseEntity.status(status).body(body);
+    }
 
-        return ResponseEntity.status(status).body(response);
+    private ApiFieldError fieldError(FieldError fieldError) {
+        String code = "error.invalid-value";
+        List<String> args = new ArrayList<>();
+        try {
+            ConstraintViolation<?> violation = fieldError.unwrap(ConstraintViolation.class);
+            String template = violation.getMessageTemplate();
+            if (template != null && template.startsWith("{") && template.endsWith("}") && template.length() > 2) {
+                code = template.substring(1, template.length() - 1);
+            }
+            Number min = number(violation, "min");
+            Number max = number(violation, "max");
+            if (min != null && min.longValue() > 0) {
+                args.add(min.toString());
+            }
+            if (max != null && max.longValue() < Integer.MAX_VALUE) {
+                args.add(max.toString());
+            }
+        } catch (IllegalArgumentException ignored) {
+            code = "error.invalid-value";
+        }
+        return new ApiFieldError(code, messages.text(code, args.toArray()), args);
+    }
+
+    private Number number(ConstraintViolation<?> violation, String name) {
+        Object value = violation.getConstraintDescriptor().getAttributes().get(name);
+        return value instanceof Number number ? number : null;
     }
 }

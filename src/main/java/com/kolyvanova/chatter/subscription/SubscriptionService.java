@@ -27,9 +27,9 @@ public class SubscriptionService {
 
     public SubscriptionReadDto create(UUID subscriberId, UUID authorId) {
         User subscriber = userRepository.findById(subscriberId)
-                .orElseThrow(() -> new UserNotFoundException(subscriberId));
+                .orElseThrow(() -> new UserNotFoundException());
         User author = userRepository.findById(authorId)
-                .orElseThrow(() -> new UserNotFoundException(authorId));
+                .orElseThrow(() -> new UserNotFoundException());
         if (subscriberId.equals(authorId)) {
             throw new SelfSubscriptionException();
         }
@@ -54,7 +54,7 @@ public class SubscriptionService {
     @Transactional(readOnly = true)
     public SubscriptionReadDto findById(UUID id) {
         Subscription subscription = subscriptionRepository.findById(id)
-                .orElseThrow(() -> new SubscriptionNotFoundException(id));
+                .orElseThrow(() -> new SubscriptionNotFoundException());
 
         return subscriptionMapper.toReadDto(subscription);
     }
@@ -71,7 +71,7 @@ public class SubscriptionService {
 
     public void delete(UUID subscriberId, UUID authorId) {
         Subscription subscription = subscriptionRepository.findBySubscriberIdAndAuthorId(subscriberId, authorId)
-                .orElseThrow(() -> new SubscriptionNotFoundException(subscriberId, authorId));
+                .orElseThrow(() -> new SubscriptionNotFoundException());
 
         subscriptionRepository.delete(subscription);
         log.info("Deleted subscription from user {} to author {}", subscriberId, authorId);

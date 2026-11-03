@@ -31,7 +31,7 @@ public class PostService {
 
     public PostReadDto create(PostCreateDto dto, UUID userId) {
         User author = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
+                .orElseThrow(() -> new UserNotFoundException());
 
         Post post = postMapper.toEntity(dto);
         post.setAuthor(author);
@@ -48,9 +48,9 @@ public class PostService {
         }
 
         Post parent = postRepository.findById(dto.replyToId())
-                .orElseThrow(() -> new PostNotFoundException(dto.replyToId()));
+                .orElseThrow(() -> new PostNotFoundException());
         if (!parent.getStatus().equals(PostStatus.PUBLISHED)) {
-            throw new PostNotFoundException(dto.replyToId());
+            throw new PostNotFoundException();
         }
 
         post.setReplyTo(parent);
@@ -141,11 +141,11 @@ public class PostService {
 
     private Post visiblePost(UUID id, UUID viewerId, boolean moderator) {
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new PostNotFoundException(id));
+                .orElseThrow(() -> new PostNotFoundException());
         boolean published = post.getStatus() == PostStatus.PUBLISHED;
         boolean own = post.getAuthor().getId().equals(viewerId);
         if (!published && !own && !moderator) {
-            throw new PostNotFoundException(id);
+            throw new PostNotFoundException();
         }
         return post;
     }
@@ -161,9 +161,9 @@ public class PostService {
 
     public PostReadDto updateImage(UUID id, UUID authorId, MultipartFile file) {
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new PostNotFoundException(id));
+                .orElseThrow(() -> new PostNotFoundException());
         if (!post.getAuthor().getId().equals(authorId)) {
-            throw new AccessDeniedException("not the author");
+            throw new AccessDeniedException("error.not-author");
         }
 
         String previous = post.getImageKey();
@@ -184,9 +184,9 @@ public class PostService {
 
     public PostReadDto update(UUID id, UUID authorId, PostUpdateDto dto) {
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new PostNotFoundException(id));
+                .orElseThrow(() -> new PostNotFoundException());
         if (!post.getAuthor().getId().equals(authorId))
-            throw new AccessDeniedException("not the author");
+            throw new AccessDeniedException("error.not-author");
 
         postMapper.updateEntity(dto, post);
         postRepository.save(post);
@@ -197,9 +197,9 @@ public class PostService {
 
     public void delete(UUID id, UUID authorId) {
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new PostNotFoundException(id));
+                .orElseThrow(() -> new PostNotFoundException());
         if (!post.getAuthor().getId().equals(authorId))
-            throw new AccessDeniedException("not the author");
+            throw new AccessDeniedException("error.not-author");
 
         String imageKey = post.getImageKey();
         postRepository.delete(post);
@@ -211,7 +211,7 @@ public class PostService {
     public void hide(UUID id, UUID actorId) {
         requireModerator(actorId);
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new PostNotFoundException(id));
+                .orElseThrow(() -> new PostNotFoundException());
 
         post.setStatus(PostStatus.HIDDEN);
         postRepository.save(post);
@@ -221,7 +221,7 @@ public class PostService {
     public void show(UUID id, UUID actorId) {
         requireModerator(actorId);
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new PostNotFoundException(id));
+                .orElseThrow(() -> new PostNotFoundException());
         post.setStatus(PostStatus.PUBLISHED);
         postRepository.save(post);
         log.info("Showed post {}", id);
@@ -229,9 +229,9 @@ public class PostService {
 
     private void requireModerator(UUID actorId) {
         User actor = userRepository.findById(actorId)
-                .orElseThrow(() -> new UserNotFoundException(actorId));
+                .orElseThrow(() -> new UserNotFoundException());
         if (actor.getRole() != UserRole.MODERATOR && actor.getRole() != UserRole.ADMIN) {
-            throw new AccessDeniedException("Access Denied");
+            throw new AccessDeniedException("error.access-denied");
         }
     }
 }

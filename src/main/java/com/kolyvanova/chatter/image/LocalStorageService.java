@@ -37,7 +37,7 @@ public class LocalStorageService {
         Path path = resolve(key);
 
         if (!Files.isRegularFile(path) || !Files.isReadable(path)) {
-            throw new ImageNotFoundException(key);
+            throw new ImageNotFoundException();
         }
 
         return new FileSystemResource(path);
@@ -51,7 +51,7 @@ public class LocalStorageService {
         try {
             Files.deleteIfExists(resolve(key));
         } catch (IOException e) {
-            throw new FileNotFoundException(key);
+            throw new FileNotFoundException();
         }
 
     }
@@ -65,7 +65,7 @@ public class LocalStorageService {
                 .normalize();
 
         if (!path.startsWith(root)) {
-            throw new InvalidFileException(String.format("Path '%s' does not start with '%s'", path, root));
+            throw new InvalidFileException("error.file.path");
         };
 
         return path;

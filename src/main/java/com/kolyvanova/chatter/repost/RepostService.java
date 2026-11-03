@@ -31,9 +31,9 @@ public class RepostService {
     @Transactional
     public RepostReadDto create(UUID postId, UUID userId) {
         Post post = postRepository.findByIdAndStatus(postId, PostStatus.PUBLISHED)
-                .orElseThrow(() -> new PostNotFoundException(postId));
+                .orElseThrow(() -> new PostNotFoundException());
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
+                .orElseThrow(() -> new UserNotFoundException());
         if (repostRepository.existsByPostIdAndUserId(postId, userId)) {
             throw new RepostAlreadyExistsException();
         }
@@ -56,9 +56,9 @@ public class RepostService {
     @Transactional(readOnly = true)
     public RepostReadDto findById(UUID id, UUID viewerId, boolean moderator) {
         Repost repost = repostRepository.findById(id)
-                .orElseThrow(() -> new RepostNotFoundException(id));
+                .orElseThrow(() -> new RepostNotFoundException());
         if (!isVisible(repost.getPost(), viewerId, moderator)) {
-            throw new RepostNotFoundException(id);
+            throw new RepostNotFoundException();
         }
 
         return repostMapper.toReadDto(repost);
@@ -67,9 +67,9 @@ public class RepostService {
     @Transactional(readOnly = true)
     public Page<RepostReadDto> findAllByPostId(UUID postId, UUID viewerId, boolean moderator, Pageable pageable) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new PostNotFoundException(postId));
+                .orElseThrow(() -> new PostNotFoundException());
         if (!isVisible(post, viewerId, moderator)) {
-            throw new PostNotFoundException(postId);
+            throw new PostNotFoundException();
         }
 
         return repostRepository.findAllByPostId(postId, pageable).map(repostMapper::toReadDto);
@@ -90,7 +90,7 @@ public class RepostService {
     @Transactional
     public void delete(UUID id, UUID userId) {
         Repost repost = repostRepository.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new RepostNotFoundException(id));
+                .orElseThrow(() -> new RepostNotFoundException());
 
         repostRepository.delete(repost);
         log.info("Deleted repost {} by user {}", id, userId);

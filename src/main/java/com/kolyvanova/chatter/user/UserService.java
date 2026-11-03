@@ -34,9 +34,9 @@ public class UserService {
     public UserReadDto create(UserCreateDto dto){
         String username = dto.username().toLowerCase(Locale.ROOT);
         if (userRepository.existsByEmail(dto.email()))
-            throw new UserAlreadyExistsException("Email is already registered");
+            throw new UserAlreadyExistsException("error.user.email-taken");
         if (userRepository.existsByUsername(username))
-            throw new UserAlreadyExistsException("Username is already taken");
+            throw new UserAlreadyExistsException("error.user.username-taken");
 
         User user = userMapper.toEntity(dto);
         user.setUsername(username);
@@ -71,20 +71,20 @@ public class UserService {
 
     public void requireAdmin(UUID actorId) {
         if (!isAdmin(actorId)) {
-            throw new AccessDeniedException("Access Denied");
+            throw new AccessDeniedException("error.access-denied");
         }
     }
 
     private UserRole roleOf(UUID id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id))
+                .orElseThrow(() -> new UserNotFoundException())
                 .getRole();
     }
 
     @Transactional(readOnly = true)
     public UserPublicReadDto findById(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(() -> new UserNotFoundException());
 
         return userMapper.toPublicDto(user);
     }
@@ -92,14 +92,14 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserStaffReadDto findForAdmin(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(() -> new UserNotFoundException());
         return userMapper.toStaffDto(user);
     }
 
     @Transactional(readOnly = true)
     public UserPublicReadDto findByUsername(String username) {
         User user = userRepository.findByUsername(username.toLowerCase(Locale.ROOT))
-                .orElseThrow(() -> new UserNotFoundException(username));
+                .orElseThrow(() -> new UserNotFoundException());
 
         return  userMapper.toPublicDto(user);
     }
@@ -107,14 +107,14 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserStaffReadDto findByUsernameForAdmin(String username) {
         User user = userRepository.findByUsername(username.toLowerCase(Locale.ROOT))
-                .orElseThrow(() -> new UserNotFoundException(username));
+                .orElseThrow(() -> new UserNotFoundException());
         return userMapper.toStaffDto(user);
     }
 
     @Transactional(readOnly = true)
     public UserReadDto findMe(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(() -> new UserNotFoundException());
 
         return userMapper.toReadDto(user);
     }
@@ -122,13 +122,13 @@ public class UserService {
     @Transactional
     public UserReadDto update(UUID id, UserUpdateDto dto) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(() -> new UserNotFoundException());
 
         String username = dto.username().toLowerCase(Locale.ROOT);
         if (userRepository.existsByEmailAndIdNot(dto.email(), id))
-            throw new UserAlreadyExistsException("Email is already registered");
+            throw new UserAlreadyExistsException("error.user.email-taken");
         if (userRepository.existsByUsernameAndIdNot(username, id))
-            throw new UserAlreadyExistsException("Username is already taken");
+            throw new UserAlreadyExistsException("error.user.username-taken");
 
         userMapper.updateEntity(dto, user);
         user.setUsername(username);
@@ -141,9 +141,9 @@ public class UserService {
     @Transactional(readOnly = true)
     public ImageResponse loadAvatar(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(() -> new UserNotFoundException());
         if (user.getAvatarKey() == null) {
-            throw new ImageNotFoundException("avatar");
+            throw new ImageNotFoundException();
         }
         return fileService.load(user.getAvatarKey());
     }
@@ -151,7 +151,7 @@ public class UserService {
     @Transactional
     public UserReadDto updateAvatar(UUID id, MultipartFile file) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(() -> new UserNotFoundException());
 
         String previous = user.getAvatarKey();
         user.setAvatarKey(fileService.upload("avatar", file));
@@ -166,7 +166,7 @@ public class UserService {
     @Transactional
     public void changePassword(UUID id, String currentPassword, String newPassword) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(() -> new UserNotFoundException());
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new InvalidPasswordException();
         }
@@ -179,10 +179,10 @@ public class UserService {
     @Transactional
     public void changeRole(UUID id, UUID actorId, UserRole role) {
         if (id.equals(actorId)) {
-            throw new AccessDeniedException("cannot change your own role");
+            throw new AccessDeniedException("error.user.role-self");
         }
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(() -> new UserNotFoundException());
         user.setRole(role);
         userRepository.save(user);
         log.info("Changed role of user {} to {}", id, role);
@@ -192,7 +192,7 @@ public class UserService {
     @Transactional
     public void block(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(() -> new UserNotFoundException());
         user.setStatus(UserStatus.BLOCKED);
         userRepository.save(user);
         log.info("Blocked user {}", id);
@@ -202,7 +202,7 @@ public class UserService {
     @Transactional
     public void unblock(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(() -> new UserNotFoundException());
         user.setStatus(UserStatus.ACTIVE);
         userRepository.save(user);
         log.info("Unblocked user {}", id);
@@ -211,7 +211,7 @@ public class UserService {
     @Transactional
     public void delete(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(() -> new UserNotFoundException());
 
         List<String> imageKeys = postRepository.findAllByAuthorId(id, Pageable.unpaged()).stream()
                 .map(Post::getImageKey)

@@ -1,6 +1,7 @@
 package com.kolyvanova.chatter.auth;
 
 import com.kolyvanova.chatter.exception.ApiErrorResponse;
+import com.kolyvanova.chatter.exception.InvalidCredentialsException;
 import com.kolyvanova.chatter.user.UserCreateDto;
 import com.kolyvanova.chatter.user.UserReadDto;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,7 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 @Tag(name = "auth")
 @SecurityRequirements
@@ -48,7 +48,7 @@ public class AuthRestController {
         try {
             return authService.login(request.username(), request.password());
         } catch (AuthenticationException exception) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid credentials");
+            throw new InvalidCredentialsException();
         }
     }
 }

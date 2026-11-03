@@ -5,10 +5,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record PostUpdateDto(
-        @NotBlank
-        @Size(max = 280)
+        @NotBlank(message = "{post.content.required}")
+        @Size(max = 280, message = "{post.content.size}")
         String content,
-        @NotNull
+        @NotNull(message = "{post.category.required}")
         PostCategory category
 ) {
 }

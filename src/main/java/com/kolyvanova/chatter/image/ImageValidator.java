@@ -17,10 +17,10 @@ public class ImageValidator {
 
     public ValidatedFile validate(byte[] content){
         if (content == null || content.length == 0){
-            throw new InvalidFileException("File is empty");
+            throw new InvalidFileException("error.file.empty");
         }
         if (content.length > mediaProperties.maxBytes()) {
-            throw new InvalidFileException("File is too large");
+            throw new InvalidFileException("error.file.too-large");
         }
 
         String contentType = tika.detect(content);
@@ -29,7 +29,7 @@ public class ImageValidator {
             case "image/jpeg" -> ".jpg";
             case "image/png" -> ".png";
             case "image/heif" -> ".heif";
-            default -> throw new InvalidFileException("Unsupported file type: " + contentType);
+            default -> throw new InvalidFileException("error.file.unsupported", contentType);
         };
 
         return new ValidatedFile(contentType, extension);

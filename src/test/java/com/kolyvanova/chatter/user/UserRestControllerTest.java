@@ -2,12 +2,14 @@ package com.kolyvanova.chatter.user;
 
 import com.kolyvanova.chatter.support.AbstractControllerTest;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -17,6 +19,9 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class UserRestControllerTest extends AbstractControllerTest {
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Test
     void currentProfileContainsEmailAndPublicProfileDoesNot() throws Exception {
@@ -82,6 +87,40 @@ class UserRestControllerTest extends AbstractControllerTest {
                         .with(jwt().jwt(token -> token.subject(moderator.id().toString()))
                                 .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"))))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void moderatorListsBlockedUsersAndReadsStatus() throws Exception {
+        UserReadDto moderator = createUser("moderator");
+        UserReadDto user = createUser("ivan_ivanov");
+        User stored = userRepository.findById(moderator.id()).orElseThrow();
+        stored.setRole(UserRole.MODERATOR);
+        userRepository.saveAndFlush(stored);
+        var asModerator = jwt().jwt(token -> token.subject(moderator.id().toString()))
+                .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"));
+
+        mockMvc.perform(get("/api/v1/users").param("status", "BLOCKED").with(asUser(user.id())))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(put("/api/v1/users/{id}/block", user.id()).with(asModerator))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/users").param("status", "BLOCKED").with(asModerator))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].username").value("ivan_ivanov"))
+                .andExpect(jsonPath("$.content[0].role").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/users/{id}", user.id()).with(asModerator))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("BLOCKED"))
+                .andExpect(jsonPath("$.role").doesNotExist());
+
+        mockMvc.perform(put("/api/v1/users/{id}/unblock", user.id()).with(asModerator))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/users").param("status", "BLOCKED").with(asModerator))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
     }
 
     @Test
@@ -153,6 +192,14 @@ class UserRestControllerTest extends AbstractControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("image/jpeg"))
                 .andExpect(content().bytes(jpeg));
+
+        mockMvc.perform(delete("/api/v1/users/me/avatar").with(asUser(user.id())))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/v1/users/me").with(asUser(user.id())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.avatarKey").value(nullValue()));
+        mockMvc.perform(get("/api/v1/users/{id}/avatar", user.id()))
+                .andExpect(status().isNotFound());
     }
 
     @Test

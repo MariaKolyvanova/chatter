@@ -65,12 +65,30 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public Page<UserPublicReadDto> findAllByStatus(UserStatus status, Pageable pageable) {
+        return userRepository.findAllByStatus(status, pageable)
+                .map(userMapper::toPublicDto);
+    }
+
+    @Transactional(readOnly = true)
     public boolean isAdmin(UUID id) {
         return roleOf(id) == UserRole.ADMIN;
     }
 
+    @Transactional(readOnly = true)
+    public boolean isModerator(UUID id) {
+        UserRole role = roleOf(id);
+        return role == UserRole.MODERATOR || role == UserRole.ADMIN;
+    }
+
     public void requireAdmin(UUID actorId) {
         if (!isAdmin(actorId)) {
+            throw new AccessDeniedException("error.access-denied");
+        }
+    }
+
+    public void requireModerator(UUID actorId) {
+        if (!isModerator(actorId)) {
             throw new AccessDeniedException("error.access-denied");
         }
     }
@@ -94,6 +112,13 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException());
         return userMapper.toStaffDto(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserModeratorReadDto findForModerator(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException());
+        return userMapper.toModeratorDto(user);
     }
 
     @Transactional(readOnly = true)
@@ -161,6 +186,21 @@ public class UserService {
         log.info("Updated avatar of user {}", id);
 
         return userMapper.toReadDto(user);
+    }
+
+    @Transactional
+    public void deleteAvatar(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException());
+
+        String avatarKey = user.getAvatarKey();
+        if (avatarKey == null) {
+            return;
+        }
+        user.setAvatarKey(null);
+        userRepository.save(user);
+        fileService.delete(avatarKey);
+        log.info("Deleted avatar of user {}", id);
     }
 
     @Transactional

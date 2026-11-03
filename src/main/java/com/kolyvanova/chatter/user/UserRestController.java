@@ -47,13 +47,18 @@ public class UserRestController {
         return userService.create(dto);
     }
 
-    @Operation(summary = "List users. An admin also receives each user's role")
+    @Operation(summary = "List users. An admin also receives each user's role. Staff can filter by status")
     @ApiResponse(responseCode = "403", description = "Access is denied",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @GetMapping
     public Object findAll(
             @RequestParam(required = false) UserRole role,
+            @RequestParam(required = false) UserStatus status,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+        if (status != null) {
+            userService.requireModerator(currentUser.id());
+            return userService.findAllByStatus(status, pageable);
+        }
         if (role != null) {
             userService.requireAdmin(currentUser.id());
             return userService.findAllForAdmin(role, pageable);
@@ -64,13 +69,16 @@ public class UserRestController {
         return userService.findAll(pageable);
     }
 
-    @Operation(summary = "Get a user. An admin also receives the role")
+    @Operation(summary = "Get a user. An admin also receives the role. A moderator also receives the status")
     @ApiResponse(responseCode = "404", description = "User not found",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @GetMapping("/{id}")
     public Object findById(@PathVariable UUID id) {
         if (userService.isAdmin(currentUser.id())) {
             return userService.findForAdmin(id);
+        }
+        if (userService.isModerator(currentUser.id())) {
+            return userService.findForModerator(id);
         }
         return userService.findById(id);
     }
@@ -137,6 +145,15 @@ public class UserRestController {
     @PutMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public UserReadDto updateAvatar(@RequestParam MultipartFile file) throws IOException {
         return userService.updateAvatar(currentUser.id(), file);
+    }
+
+    @Operation(summary = "Delete the current user's avatar")
+    @ApiResponse(responseCode = "404", description = "User not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @DeleteMapping("/me/avatar")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAvatar() {
+        userService.deleteAvatar(currentUser.id());
     }
 
     @Operation(summary = "Change a user's role. Admin only")

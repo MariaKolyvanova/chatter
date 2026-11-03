@@ -11,6 +11,7 @@ public record UserStaffReadDto(
         String location,
         String avatarKey,
         LocalDate birthDate,
-        UserRole role
+        UserRole role,
+        UserStatus status
 ) {
 }

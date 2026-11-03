@@ -131,17 +131,58 @@ button, input, select, textarea { font: inherit; color: inherit; }
     border-bottom: 1px solid var(--line);
 }
 
-.composer { display: grid; grid-template-columns: 40px 1fr; gap: 12px; }
+.composer { position: relative; display: grid; grid-template-columns: 40px 1fr; gap: 12px; }
 .composer textarea {
     width: 100%;
     min-height: 52px;
     border: 0;
     resize: vertical;
     outline: none;
+    padding-right: 36px;
     font-size: 20px;
 }
 .composer textarea::placeholder { color: var(--muted); }
 .composer-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.composer .photo-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--blue);
+    cursor: pointer;
+}
+.photo-btn:hover { background: rgba(29, 155, 240, 0.1); }
+.photo-btn svg { width: 20px; height: 20px; fill: currentColor; }
+.composer-preview { position: relative; width: fit-content; max-width: 100%; margin-top: 8px; }
+.composer-preview[hidden] { display: none; }
+.composer-preview img {
+    display: block;
+    max-width: 100%;
+    max-height: 240px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+}
+.composer-preview button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(15, 20, 25, 0.75);
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
 .composer select {
     border: 0;
     color: var(--blue);
@@ -152,6 +193,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tabs { display: flex; border-bottom: 1px solid var(--line); }
 .tabs > button, .tab-menu > button {
     flex: 1;
+    min-width: 0;
     border: 0;
     border-bottom: 2px solid transparent;
     background: transparent;
@@ -192,15 +234,28 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .menu button.active { color: var(--blue); }
 
 .post { display: grid; grid-template-columns: 40px 1fr; gap: 12px; }
+.post > .avatar { align-self: start; }
 .post-open { cursor: pointer; }
 .post[hidden] { display: none; }
 .parent-link { display: block; margin: 0 0 4px; color: var(--muted); font-size: 13px; }
 .parent-link:hover { color: var(--blue); }
 .post:hover { background: var(--hover); }
 .post .content, .post p { margin: 2px 0 10px; font-size: 15px; }
+.post-photo {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 420px;
+    margin: 0 0 10px;
+    object-fit: contain;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--hover);
+}
+.post-photo[hidden] { display: none; }
 .post .content textarea { width: 100%; min-height: 72px; border: 1px solid #cfd9de; border-radius: 8px; padding: 8px; }
 .post .content textarea:hover, .post .content textarea:focus { border-color: var(--blue); outline: none; }
-.post header { display: flex; align-items: flex-start; gap: 8px; }
+.post header { display: flex; align-items: center; gap: 8px; }
 .post header .who { display: flex; flex: 1; flex-wrap: wrap; gap: 4px 6px; align-items: baseline; min-width: 0; }
 .post header span, .post time { color: var(--muted); }
 .post time { white-space: nowrap; }
@@ -209,7 +264,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
     margin-right: 12px;
     color: var(--muted);
     font-size: 13px;
-    line-height: 32px;
+    line-height: 1.4;
     flex: none;
     white-space: nowrap;
 }
@@ -293,6 +348,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
     display: grid;
     place-items: center;
     flex: none;
+    align-self: center;
+    overflow: hidden;
     line-height: 1;
     border-radius: 50%;
     color: #fff;
@@ -303,14 +360,27 @@ button, input, select, textarea { font: inherit; color: inherit; }
     display: grid;
     place-items: center;
 }
-.avatar { width: 40px; height: 40px; }
-.avatar-lg { width: 88px; height: 88px; font-size: 32px; }
+.avatar { width: 40px; height: 40px; min-height: 40px; max-height: 40px; }
+.avatar-lg { width: 88px; height: 88px; min-height: 88px; max-height: 88px; font-size: 32px; }
 .avatar img, .avatar-lg img {
     width: 100%;
     height: 100%;
+    min-width: 0;
+    min-height: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center;
+}
+.avatar-preview {
+    display: block;
+    width: 96px;
+    height: 96px;
+    min-height: 96px;
+    max-height: 96px;
     border-radius: 50%;
     object-fit: cover;
 }
+.avatar-preview[hidden], #delete-avatar[hidden], .post-photo[hidden], .row .btn[hidden] { display: none; }
 
 .btn {
     border: 0;
@@ -360,8 +430,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 #posts[hidden], #staff[hidden] { display: none; }
 
 .profile-head { position: relative; display: grid; grid-template-columns: 88px 1fr; gap: 16px; }
+.profile-head > .avatar-lg { align-self: start; }
 .profile-head p { margin: 8px 0; }
 .profile-info { padding-right: 40px; }
+.profile-counts { display: flex; gap: 16px; margin-top: 4px; }
+.profile-counts span { color: var(--muted); }
+.profile-counts strong { color: var(--text); }
 .profile-name { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .form-actions { margin-top: 0; }
 .profile-head .settings {

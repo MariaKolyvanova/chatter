@@ -220,6 +220,36 @@ function hasAvatar(user) {
     return user.avatarKey && user.avatarKey !== "avatar/default.png";
 }
 
+function squareAvatar(file) {
+    const size = 512;
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        const url = URL.createObjectURL(file);
+        image.onload = () => {
+            const side = Math.min(image.naturalWidth, image.naturalHeight);
+            const sx = Math.round((image.naturalWidth - side) / 2);
+            const sy = Math.round((image.naturalHeight - side) / 2);
+            const canvas = document.createElement("canvas");
+            canvas.width = size;
+            canvas.height = size;
+            canvas.getContext("2d").drawImage(image, sx, sy, side, side, 0, 0, size, size);
+            URL.revokeObjectURL(url);
+            canvas.toBlob((blob) => {
+                if (!blob) {
+                    reject(new Error(t("error.avatar.crop")));
+                    return;
+                }
+                resolve(new File([blob], "avatar.jpg", { type: "image/jpeg" }));
+            }, "image/jpeg", 0.92);
+        };
+        image.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error(t("error.avatar.crop")));
+        };
+        image.src = url;
+    });
+}
+
 function avatarNode(user, large) {
     const node = document.createElement("span");
     node.className = large ? "avatar-lg" : "avatar";
@@ -332,6 +362,27 @@ const ICONS = {
     more: "M3 12c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zm9 2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm7 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z",
 };
 
+function postPhoto(post) {
+    const photo = document.createElement("img");
+    photo.className = "post-photo";
+    photo.alt = "";
+    photo.hidden = true;
+    const headers = {};
+    const token = localStorage.getItem("token");
+    if (token) headers.Authorization = "Bearer " + token;
+    fetch(API_URL + "/api/v1/posts/" + post.id + "/image", { headers })
+        .then((response) => {
+            if (!response.ok) throw new Error();
+            return response.blob();
+        })
+        .then((blob) => {
+            photo.src = URL.createObjectURL(blob);
+            photo.hidden = false;
+        })
+        .catch(() => photo.remove());
+    return photo;
+}
+
 function svg(path) {
     const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     icon.setAttribute("viewBox", "0 0 24 24");
@@ -426,6 +477,13 @@ function countButton(value, onClick) {
     return button;
 }
 
+function changedMark() {
+    const mark = document.createElement("span");
+    mark.className = "changed";
+    mark.textContent = t("post.changed");
+    return mark;
+}
+
 function renderPost(post, author, linked) {
     const own = me && post.authorId === me.id;
     const article = document.createElement("article");
@@ -446,6 +504,7 @@ function renderPost(post, author, linked) {
     const who = document.createElement("div");
     who.className = "who";
     who.append(name, handle, time);
+    if (post.changed) who.append(changedMark());
     if (post.status === "HIDDEN") {
         const badge = document.createElement("span");
         badge.className = "badge";
@@ -564,11 +623,13 @@ function renderPost(post, author, linked) {
             })
             .catch(() => {});
     }
-    body.append(text, actions);
+    body.append(text);
+    if (post.imageKey) body.append(postPhoto(post));
+    body.append(actions);
     article.append(body);
     if (linked) {
         article.addEventListener("click", (event) => {
-            if (event.target.closest("a, button, textarea")) return;
+            if (event.target.closest("a, button, textarea, input, label, select, .file-field, .row")) return;
             location.href = "post.html?id=" + post.id;
         });
     }
@@ -650,14 +711,49 @@ function closeMenus() {
     });
 }
 
+function syncPostPhoto(post, text) {
+    const body = text.parentElement;
+    body.querySelector(".post-photo")?.remove();
+    if (!post.imageKey) return;
+    body.querySelector(".actions").before(postPhoto(post));
+}
+
 function editPost(post, text) {
+    const photo = () => text.parentElement.querySelector(".post-photo");
     if (text.querySelector("textarea")) {
         text.replaceChildren(document.createTextNode(post.content));
+        if (photo() && post.imageKey) photo().hidden = false;
         return;
     }
     const field = document.createElement("textarea");
     field.maxLength = 280;
     field.value = post.content;
+    const file = document.createElement("input");
+    file.type = "file";
+    file.accept = "image/jpeg,image/png,image/heif";
+    const fileLabel = document.createElement("label");
+    fileLabel.className = "file-field";
+    const fileName = document.createElement("span");
+    fileName.textContent = post.imageKey ? t("action.change-photo") : t("action.add-photo");
+    fileLabel.append(fileName, file);
+    let removeImage = false;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "btn secondary";
+    remove.textContent = t("action.remove-photo");
+    remove.hidden = !post.imageKey;
+    remove.addEventListener("click", () => {
+        removeImage = true;
+        file.value = "";
+        remove.hidden = true;
+        if (photo()) photo().hidden = true;
+    });
+    file.addEventListener("change", () => {
+        if (!file.files[0]) return;
+        removeImage = false;
+        remove.hidden = true;
+        if (photo()) photo().hidden = false;
+    });
     const save = document.createElement("button");
     save.type = "button";
     save.className = "btn";
@@ -668,9 +764,12 @@ function editPost(post, text) {
     cancel.textContent = t("action.cancel");
     const bar = document.createElement("div");
     bar.className = "row";
-    bar.append(save, cancel);
-    text.replaceChildren(field, bar);
-    cancel.addEventListener("click", () => text.replaceChildren(document.createTextNode(post.content)));
+    bar.append(cancel, remove, save);
+    text.replaceChildren(field, fileLabel, bar);
+    cancel.addEventListener("click", () => {
+        text.replaceChildren(document.createTextNode(post.content));
+        if (photo() && post.imageKey) photo().hidden = false;
+    });
     save.addEventListener("click", async () => {
         try {
             const updated = await api("/api/v1/posts/" + post.id, {
@@ -678,7 +777,21 @@ function editPost(post, text) {
                 body: { content: field.value, category: post.category },
             });
             post.content = updated.content;
-            text.replaceChildren(document.createTextNode(updated.content));
+            if (file.files[0]) {
+                const form = new FormData();
+                form.append("file", file.files[0]);
+                const saved = await api("/api/v1/posts/" + post.id + "/image", { method: "POST", form });
+                post.imageKey = saved.imageKey;
+            } else if (removeImage) {
+                await api("/api/v1/posts/" + post.id + "/image", { method: "DELETE" });
+                post.imageKey = null;
+            }
+            text.replaceChildren(document.createTextNode(post.content));
+            syncPostPhoto(post, text);
+            const who = text.parentElement.querySelector(".who");
+            if (updated.changed && who && !who.querySelector(".changed")) {
+                who.querySelector("time").after(changedMark());
+            }
         } catch (error) {
             showError(error);
         }
@@ -702,6 +815,53 @@ async function showPosts(posts, box) {
     for (const post of posts) {
         box.append(renderPost(post, await userById(post.authorId), true));
     }
+}
+
+async function profileCounts(userId) {
+    const [following, followers] = await Promise.all([
+        api("/api/v1/subscriptions/by-subscriber?subscriberId=" + userId + "&size=1"),
+        api("/api/v1/subscriptions/by-author?authorId=" + userId + "&size=1"),
+    ]);
+    const line = document.createElement("div");
+    line.className = "profile-counts";
+    for (const [count, label, name] of [
+        [following.totalElements, t("stat.following"), "following"],
+        [followers.totalElements, t("stat.followers"), "followers"],
+    ]) {
+        const item = document.createElement("span");
+        const strong = document.createElement("strong");
+        strong.dataset.count = name;
+        strong.textContent = count;
+        item.append(strong, document.createTextNode(" " + label));
+        line.append(item);
+    }
+    return line;
+}
+
+async function setBlocked(user, block) {
+    if (!confirm(block ? t("confirm.block") : t("confirm.unblock"))) return;
+    await api("/api/v1/users/" + user.id + (block ? "/block" : "/unblock"), { method: "PUT" });
+    location.reload();
+}
+
+function blockedRow(user, onUnblock) {
+    const row = document.createElement("div");
+    row.className = "person";
+    row.append(avatarNode(user));
+    const info = document.createElement("a");
+    info.href = profileUrl(user.id);
+    const name = document.createElement("strong");
+    name.textContent = user.displayName;
+    const handle = document.createElement("span");
+    handle.textContent = "@" + user.username;
+    info.append(name, handle);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn secondary";
+    button.textContent = t("action.unblock");
+    button.addEventListener("click", () => onUnblock(user, row));
+    row.append(info, button);
+    return row;
 }
 
 async function bindProfileTabs(userId) {
@@ -733,6 +893,18 @@ async function bindProfileTabs(userId) {
 
     async function select(tab) {
         buttons.forEach((button) => button.classList.toggle("active", button.dataset.profileTab === tab));
+        if (tab === "followers") {
+            const page = await api("/api/v1/subscriptions/by-author?authorId=" + userId + "&size=50&sort=createdAt,desc");
+            const list = document.createElement("div");
+            list.className = "people-list";
+            for (const item of page.content) list.append(personRow(await userById(item.subscriberId), false));
+            box.replaceChildren(list);
+            if (empty) {
+                empty.textContent = t("empty.none");
+                empty.hidden = page.content.length > 0;
+            }
+            return;
+        }
         let posts = [];
         if (tab === "posts" || tab === "replies") {
             posts = await authorPosts(userId, tab === "replies", visibility);
@@ -743,7 +915,10 @@ async function bindProfileTabs(userId) {
             const reposts = await api("/api/v1/reposts/by-user?userId=" + userId + "&size=50&sort=createdAt,desc");
             posts = await postsByIds(reposts.content.map((item) => item.postId));
         }
-        if (empty) empty.hidden = posts.length > 0;
+        if (empty) {
+            empty.textContent = t("empty.nothing");
+            empty.hidden = posts.length > 0;
+        }
         await showPosts(posts, box);
     }
 
@@ -884,20 +1059,62 @@ async function bindFeed() {
     });
 
     const composer = document.querySelector("#composer");
+    const photoInput = document.querySelector("#composer-file");
+    const photoPreview = document.querySelector("#composer-preview");
+    const photoImage = photoPreview.querySelector("img");
+    let previewUrl = null;
+
+    function clearComposerPhoto() {
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+            previewUrl = null;
+        }
+        photoInput.value = "";
+        photoImage.removeAttribute("src");
+        photoPreview.hidden = true;
+    }
+
+    document.querySelector("#composer-photo").addEventListener("click", () => photoInput.click());
+    photoInput.addEventListener("change", () => {
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        const file = photoInput.files[0];
+        if (!file) {
+            previewUrl = null;
+            photoPreview.hidden = true;
+            return;
+        }
+        previewUrl = URL.createObjectURL(file);
+        photoImage.src = previewUrl;
+        photoPreview.hidden = false;
+    });
+    document.querySelector("#composer-clear").addEventListener("click", clearComposerPhoto);
     composer.addEventListener("submit", async (event) => {
         event.preventDefault();
         const data = new FormData(composer);
+        const file = photoInput.files[0];
+        let created = null;
         try {
-            await api("/api/v1/posts", {
+            created = await api("/api/v1/posts", {
                 method: "POST",
                 body: { content: data.get("content"), category: data.get("category") },
             });
+            if (file) {
+                const form = new FormData();
+                form.append("file", file);
+                await api("/api/v1/posts/" + created.id + "/image", { method: "POST", form });
+            }
             composer.reset();
+            clearComposerPhoto();
             if (categorySelect) {
                 for (const option of categorySelect.options) option.textContent = label(option.value);
             }
             await select("all");
         } catch (error) {
+            if (created) {
+                composer.reset();
+                clearComposerPhoto();
+                await select("all");
+            }
             showError(error);
         }
     });
@@ -945,7 +1162,11 @@ async function bindProfile() {
         location.replace("me.html");
         return;
     }
-    const user = await userById(id);
+    let user = await userById(id);
+    if (canModerate()) {
+        user = await api("/api/v1/users/" + id);
+        users.set(id, user);
+    }
     const head = document.querySelector("#profile");
     head.append(avatarNode(user, true));
     const info = document.createElement("div");
@@ -958,20 +1179,39 @@ async function bindProfile() {
     const facts = document.createElement("div");
     facts.className = "muted";
     facts.textContent = [user.location, formatBirthDate(user.birthDate)].filter(Boolean).join(" · ");
-    info.append(profileTitle(user.displayName, user.role), handle, bio, facts);
+    info.append(profileTitle(user.displayName, user.role), handle, bio, facts, await profileCounts(user.id));
+    const menuItems = [];
     if (isAdmin() && user.role) {
-        head.append(settingsMenu([
-            { label: t("menu.change-role"), onClick: () => togglePanel("#role-form") },
-        ]));
+        menuItems.push({ label: t("menu.change-role"), onClick: () => togglePanel("#role-form") });
         bindRoleForm(user);
     }
+    if (canModerate()) {
+        const blocked = user.status === "BLOCKED";
+        menuItems.push({
+            label: blocked ? t("action.unblock") : t("action.block"),
+            onClick: () => setBlocked(user, !blocked).catch(showError),
+        });
+    }
+    if (menuItems.length) head.append(settingsMenu(menuItems));
     if (user.id !== me.id) {
         const row = document.createElement("div");
         row.className = "row";
         const button = document.createElement("button");
         button.type = "button";
         paintFollow(button, user.id);
-        button.addEventListener("click", () => toggleFollow(user.id, button).catch(showError));
+        button.addEventListener("click", async () => {
+            const before = followingIds.has(user.id);
+            try {
+                await toggleFollow(user.id, button);
+                if (before === followingIds.has(user.id)) return;
+                const shown = info.querySelector("[data-count='followers']");
+                if (!shown) return;
+                const next = Number(shown.textContent) + (followingIds.has(user.id) ? 1 : -1);
+                shown.textContent = String(Math.max(0, next));
+            } catch (error) {
+                showError(error);
+            }
+        });
         row.append(button);
         info.append(row);
     }
@@ -992,7 +1232,7 @@ async function bindMe() {
     const details = document.createElement("div");
     details.className = "muted";
     details.textContent = [me.email, me.location, formatBirthDate(me.birthDate)].filter(Boolean).join(" · ");
-    info.append(profileTitle(me.displayName, me.role), handle, bio, details);
+    info.append(profileTitle(me.displayName, me.role), handle, bio, details, await profileCounts(me.id));
     head.append(info, settingsMenu([
         { label: t("menu.edit-profile"), onClick: () => togglePanel("#edit-form") },
         { label: t("menu.change-password"), onClick: () => togglePanel("#password-form") },
@@ -1051,12 +1291,58 @@ async function bindMe() {
     });
 
     const avatarForm = document.querySelector("#avatar-form");
+    const avatarInput = avatarForm.elements.file;
+    const avatarPreview = document.createElement("img");
+    avatarPreview.className = "avatar-preview";
+    avatarPreview.alt = "";
+    avatarPreview.hidden = true;
+    avatarForm.insertBefore(avatarPreview, avatarForm.querySelector(".form-actions"));
+    let avatarFile = null;
+    let previewUrl = null;
+
+    function clearAvatarCrop() {
+        avatarFile = null;
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+            previewUrl = null;
+        }
+        avatarPreview.removeAttribute("src");
+        avatarPreview.hidden = true;
+    }
+
+    avatarInput.addEventListener("change", async () => {
+        clearAvatarCrop();
+        const file = avatarInput.files[0];
+        if (!file) return;
+        try {
+            avatarFile = await squareAvatar(file);
+            previewUrl = URL.createObjectURL(avatarFile);
+            avatarPreview.src = previewUrl;
+            avatarPreview.hidden = false;
+        } catch (error) {
+            avatarInput.value = "";
+            showError(error);
+        }
+    });
     bindCancel(avatarForm);
+    avatarForm.querySelector("[data-cancel]").addEventListener("click", clearAvatarCrop);
+    const deleteAvatar = document.querySelector("#delete-avatar");
+    deleteAvatar.hidden = !hasAvatar(me);
+    deleteAvatar.addEventListener("click", async () => {
+        if (!confirm(t("confirm.delete-avatar"))) return;
+        try {
+            await api("/api/v1/users/me/avatar", { method: "DELETE" });
+            location.reload();
+        } catch (error) {
+            showError(error);
+        }
+    });
     avatarForm.addEventListener("submit", async (event) => {
         event.preventDefault();
-        const form = new FormData();
-        form.append("file", event.currentTarget.elements.file.files[0]);
         try {
+            const file = avatarFile || await squareAvatar(avatarInput.files[0]);
+            const form = new FormData();
+            form.append("file", file);
             await api("/api/v1/users/me/avatar", { method: "PUT", form });
             location.reload();
         } catch (error) {
@@ -1167,9 +1453,30 @@ async function bindModeration() {
         tabs.querySelectorAll("[data-moderation]").forEach((button) => {
             button.classList.toggle("active", button.dataset.moderation === tab);
         });
-        const people = tab === "staff";
+        const people = tab === "staff" || tab === "blocked";
         box.hidden = people;
         staff.hidden = !people;
+        if (tab === "blocked") {
+            const page = await api("/api/v1/users?status=BLOCKED&size=100&sort=username,asc");
+            const list = document.createElement("div");
+            list.className = "people-list";
+            for (const user of page.content) {
+                list.append(blockedRow(user, async (person, row) => {
+                    if (!confirm(t("confirm.unblock"))) return;
+                    try {
+                        await api("/api/v1/users/" + person.id + "/unblock", { method: "PUT" });
+                        row.remove();
+                        empty.hidden = list.querySelector(".person") != null;
+                    } catch (error) {
+                        showError(error);
+                    }
+                }));
+            }
+            staff.replaceChildren(list);
+            empty.textContent = t("empty.none");
+            empty.hidden = page.content.length > 0;
+            return;
+        }
         if (people) {
             const moderators = await api("/api/v1/users?role=MODERATOR&size=100&sort=username,asc");
             const admins = await api("/api/v1/users?role=ADMIN&size=100&sort=username,asc");
@@ -1184,6 +1491,7 @@ async function bindModeration() {
         if (visibility === "published") path += "&status=PUBLISHED";
         if (visibility === "hidden") path += "&status=HIDDEN";
         const page = await api(path);
+        empty.textContent = t("empty.nothing");
         empty.hidden = page.content.length > 0;
         await showPosts(page.content, box);
     }

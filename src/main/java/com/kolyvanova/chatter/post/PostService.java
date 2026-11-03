@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Slf4j
@@ -41,7 +42,7 @@ public class PostService {
             if (post.getCategory() == null) {
                 post.setCategory(PostCategory.OTHER);
             }
-            Post savedPost = postRepository.save(post);
+            Post savedPost = saveNew(post);
             savedPost.setConversation(savedPost);
             log.info("Created post {} by user {}", savedPost.getId(), userId);
             return postMapper.toReadDto(savedPost);
@@ -56,7 +57,7 @@ public class PostService {
         post.setReplyTo(parent);
         post.setConversation(parent.getConversation());
         post.setCategory(parent.getCategory());
-        Post savedPost = postRepository.save(post);
+        Post savedPost = saveNew(post);
         log.info("Created post {} by user {} in reply to {}", savedPost.getId(), userId, dto.replyToId());
 
         return postMapper.toReadDto(savedPost);
@@ -176,6 +177,23 @@ public class PostService {
         return postMapper.toReadDto(post);
     }
 
+    public void deleteImage(UUID id, UUID authorId) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new PostNotFoundException());
+        if (!post.getAuthor().getId().equals(authorId)) {
+            throw new AccessDeniedException("error.not-author");
+        }
+
+        String imageKey = post.getImageKey();
+        if (imageKey == null) {
+            return;
+        }
+        post.setImageKey(null);
+        postRepository.save(post);
+        fileService.delete(imageKey);
+        log.info("Deleted image of post {} by user {}", id, authorId);
+    }
+
     @Transactional(readOnly = true)
     public Page<PostReadDto> findFeed(UUID userId, Pageable pageable) {
         return postRepository.findFeed(userId, pageable)
@@ -189,6 +207,7 @@ public class PostService {
             throw new AccessDeniedException("error.not-author");
 
         postMapper.updateEntity(dto, post);
+        post.setUpdatedAt(Instant.now());
         postRepository.save(post);
         log.info("Updated post {} by user {}", id, authorId);
 
@@ -225,6 +244,17 @@ public class PostService {
         post.setStatus(PostStatus.PUBLISHED);
         postRepository.save(post);
         log.info("Showed post {}", id);
+    }
+
+    private Post saveNew(Post post) {
+        Instant now = Instant.now();
+        post.setCreatedAt(now);
+        post.setUpdatedAt(now);
+        Post saved = postRepository.saveAndFlush(post);
+        if (saved.getCreatedAt() != null && !saved.getCreatedAt().equals(saved.getUpdatedAt())) {
+            saved.setUpdatedAt(saved.getCreatedAt());
+        }
+        return saved;
     }
 
     private void requireModerator(UUID actorId) {

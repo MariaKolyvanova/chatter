@@ -32,5 +32,6 @@ public interface PostMapper {
     @Mapping(target = "authorId", source = "author.id")
     @Mapping(target = "replyToId", source = "replyTo.id")
     @Mapping(target = "conversationId", source = "conversation.id")
+    @Mapping(target = "changed", expression = "java(!java.util.Objects.equals(post.getUpdatedAt(), post.getCreatedAt()))")
     PostReadDto toReadDto(Post post);
 }

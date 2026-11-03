@@ -4,6 +4,7 @@ import com.kolyvanova.chatter.support.AbstractControllerTest;
 import com.kolyvanova.chatter.user.UserReadDto;
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -11,6 +12,7 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import java.util.UUID;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -117,5 +119,15 @@ class PostRestControllerTest extends AbstractControllerTest {
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/posts/{id}/image", created.id()).with(asUser(author.id())))
                 .andExpect(status().isOk());
+
+        mockMvc.perform(delete("/api/v1/posts/{id}/image", created.id()).with(asUser(other.id())))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/api/v1/posts/{id}/image", created.id()).with(asUser(author.id())))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/v1/posts/{id}", created.id()).with(asUser(author.id())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imageKey").value(nullValue()));
+        mockMvc.perform(get("/api/v1/posts/{id}/image", created.id()).with(asUser(author.id())))
+                .andExpect(status().isNotFound());
     }
 }

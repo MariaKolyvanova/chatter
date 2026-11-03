@@ -13,6 +13,7 @@ public record PostReadDto(
         PostStatus status,
         long viewCount,
         String imageKey,
-        Instant createdAt
+        Instant createdAt,
+        boolean changed
 ) {
 }

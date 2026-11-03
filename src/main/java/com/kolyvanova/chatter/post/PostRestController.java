@@ -147,6 +147,17 @@ public class PostRestController {
         return postService.updateImage(id, currentUser.id(), file);
     }
 
+    @Operation(summary = "Delete a post image")
+    @ApiResponse(responseCode = "403", description = "Access is denied",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Post not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @DeleteMapping("/{id}/image")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteImage(@PathVariable UUID id) {
+        postService.deleteImage(id, currentUser.id());
+    }
+
     @Operation(summary = "Delete a post")
     @ApiResponse(responseCode = "403", description = "Access is denied",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))

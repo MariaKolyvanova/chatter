@@ -191,6 +191,8 @@ class PostServiceTest extends AbstractIntegrationTest {
         assertEquals(dto.category(), result.category());
         assertEquals(created.authorId(), result.authorId());
         assertEquals(PostStatus.PUBLISHED, result.status());
+        assertFalse(created.changed());
+        assertTrue(result.changed());
     }
 
     @Test

@@ -60,6 +60,16 @@ public class PostRestController {
         return postService.findAll(category, pageable);
     }
 
+    @Operation(summary = "List posts for moderation, including replies. Moderator or admin only")
+    @ApiResponse(responseCode = "403", description = "Access is denied",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    @GetMapping("/moderation")
+    public Page<PostReadDto> findForModeration(
+            @RequestParam(required = false) PostStatus status,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return postService.findForModeration(currentUser.id(), status, pageable);
+    }
+
     @Operation(summary = "List the current user's posts")
     @GetMapping("/me")
     public Page<PostReadDto> findMine(
@@ -97,16 +107,20 @@ public class PostRestController {
                 .body(image.resource());
     }
 
-    @Operation(summary = "List an author's published posts")
+    @Operation(summary = "List an author's posts. Hidden and all statuses are for a moderator or admin")
+    @ApiResponse(responseCode = "403", description = "Access is denied",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @GetMapping(value = "by-author", params = "authorId")
     public Page<PostReadDto> findAllByAuthorId(
             @RequestParam UUID authorId,
             @RequestParam(defaultValue = "false") boolean replies,
+            @RequestParam(required = false) PostStatus status,
+            @RequestParam(defaultValue = "false") boolean anyStatus,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         if (replies) {
             return postService.findRepliesByAuthorId(authorId, pageable);
         }
-        return postService.findAllByAuthorId(authorId, pageable);
+        return postService.findAuthorPosts(authorId, status, anyStatus, currentUser.id(), pageable);
     }
 
     @Operation(summary = "Update a post")
@@ -152,7 +166,7 @@ public class PostRestController {
     @PutMapping("/{id}/hide")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void hide(@PathVariable UUID id) {
-        postService.hide(id);
+        postService.hide(id, currentUser.id());
     }
 
     @Operation(summary = "Show a post. Moderator or admin only")
@@ -163,6 +177,6 @@ public class PostRestController {
     @PutMapping("/{id}/show")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void show(@PathVariable UUID id) {
-        postService.show(id);
+        postService.show(id, currentUser.id());
     }
 }

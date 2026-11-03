@@ -14,12 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
@@ -237,21 +234,50 @@ class PostServiceTest extends AbstractIntegrationTest {
     @Test
     void hideAndShowChangeStatus() {
         User author = createUser();
+        User moderator = createUser();
+        moderator.setRole(UserRole.MODERATOR);
+        userRepository.saveAndFlush(moderator);
         PostReadDto created = postService.create(createDto("post"), author.getId());
 
-        assertThrows(AuthenticationCredentialsNotFoundException.class, () -> postService.hide(created.id()));
+        assertThrows(AccessDeniedException.class, () -> postService.hide(created.id(), author.getId()));
 
-        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                "moderator", "n/a", List.of(new SimpleGrantedAuthority("ROLE_MODERATOR"))));
-        try {
-            postService.hide(created.id());
-            assertEquals(PostStatus.HIDDEN, postService.findById(created.id(), author.getId(), false).status());
+        postService.hide(created.id(), moderator.getId());
+        assertEquals(PostStatus.HIDDEN, postService.findById(created.id(), author.getId(), false).status());
 
-            postService.show(created.id());
-            assertEquals(PostStatus.PUBLISHED, postService.findById(created.id(), author.getId(), false).status());
-        } finally {
-            SecurityContextHolder.clearContext();
-        }
+        postService.show(created.id(), moderator.getId());
+        assertEquals(PostStatus.PUBLISHED, postService.findById(created.id(), author.getId(), false).status());
+    }
+
+    @Test
+    void moderatorCanBrowseHiddenPostsAndReplies() {
+        User author = createUser();
+        User moderator = createUser();
+        moderator.setRole(UserRole.MODERATOR);
+        userRepository.saveAndFlush(moderator);
+        PostReadDto published = postService.create(createDto("public"), author.getId());
+        PostReadDto hidden = postService.create(createDto("secret"), author.getId());
+        PostReadDto reply = postService.create(new PostCreateDto("reply", PostCategory.GENERAL, published.id()), author.getId());
+        postService.hide(hidden.id(), moderator.getId());
+        Pageable page = PageRequest.of(0, 10);
+
+        assertThrows(AccessDeniedException.class,
+                () -> postService.findAuthorPosts(author.getId(), null, true, author.getId(), page));
+        assertThrows(AccessDeniedException.class,
+                () -> postService.findForModeration(author.getId(), PostStatus.HIDDEN, page));
+
+        assertEquals(List.of(published.id()), postService.findAllByAuthorId(author.getId(), page).map(PostReadDto::id).getContent());
+        assertTrue(postService.findAuthorPosts(author.getId(), null, true, moderator.getId(), page)
+                .map(PostReadDto::id).getContent().containsAll(List.of(published.id(), hidden.id())));
+        assertEquals(List.of(hidden.id()), postService.findAuthorPosts(author.getId(), PostStatus.HIDDEN, false, moderator.getId(), page)
+                .map(PostReadDto::id).getContent());
+
+        List<UUID> visible = postService.findForModeration(moderator.getId(), PostStatus.PUBLISHED, page)
+                .map(PostReadDto::id).getContent();
+        assertTrue(visible.contains(published.id()));
+        assertTrue(visible.contains(reply.id()));
+        assertFalse(visible.contains(hidden.id()));
+        assertEquals(List.of(hidden.id()), postService.findForModeration(moderator.getId(), PostStatus.HIDDEN, page)
+                .map(PostReadDto::id).getContent());
     }
 
     @Test

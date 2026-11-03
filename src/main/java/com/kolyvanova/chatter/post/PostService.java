@@ -7,10 +7,10 @@ import com.kolyvanova.chatter.image.FileService;
 import com.kolyvanova.chatter.image.ImageResponse;
 import com.kolyvanova.chatter.user.User;
 import com.kolyvanova.chatter.user.UserRepository;
+import com.kolyvanova.chatter.user.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -84,6 +84,33 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public Page<PostReadDto> findAllByAuthorId(UUID authorId, Pageable pageable) {
+        return publishedRoots(authorId, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PostReadDto> findAuthorPosts(UUID authorId, PostStatus status, boolean anyStatus, UUID actorId, Pageable pageable) {
+        if (anyStatus || (status != null && status != PostStatus.PUBLISHED)) {
+            requireModerator(actorId);
+        }
+        if (anyStatus) {
+            return postRepository.findAllByAuthorIdAndReplyToIsNull(authorId, pageable)
+                    .map(postMapper::toReadDto);
+        }
+        PostStatus requested = status == null ? PostStatus.PUBLISHED : status;
+        return postRepository.findAllByAuthorIdAndStatusAndReplyToIsNull(authorId, requested, pageable)
+                .map(postMapper::toReadDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PostReadDto> findForModeration(UUID actorId, PostStatus status, Pageable pageable) {
+        requireModerator(actorId);
+        Page<Post> posts = status == null
+                ? postRepository.findAll(pageable)
+                : postRepository.findAllByStatus(status, pageable);
+        return posts.map(postMapper::toReadDto);
+    }
+
+    private Page<PostReadDto> publishedRoots(UUID authorId, Pageable pageable) {
         return postRepository.findAllByAuthorIdAndStatusAndReplyToIsNull(authorId, PostStatus.PUBLISHED, pageable)
                 .map(postMapper::toReadDto);
     }
@@ -181,8 +208,8 @@ public class PostService {
         log.info("Deleted post {} by user {}", id, authorId);
     }
 
-    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
-    public void hide(UUID id) {
+    public void hide(UUID id, UUID actorId) {
+        requireModerator(actorId);
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new PostNotFoundException(id));
 
@@ -191,12 +218,20 @@ public class PostService {
         log.info("Hid post {}", id);
     }
 
-    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
-    public void show(UUID id) {
+    public void show(UUID id, UUID actorId) {
+        requireModerator(actorId);
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new PostNotFoundException(id));
         post.setStatus(PostStatus.PUBLISHED);
         postRepository.save(post);
         log.info("Showed post {}", id);
+    }
+
+    private void requireModerator(UUID actorId) {
+        User actor = userRepository.findById(actorId)
+                .orElseThrow(() -> new UserNotFoundException(actorId));
+        if (actor.getRole() != UserRole.MODERATOR && actor.getRole() != UserRole.ADMIN) {
+            throw new AccessDeniedException("Access Denied");
+        }
     }
 }

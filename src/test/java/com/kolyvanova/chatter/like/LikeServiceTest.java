@@ -68,11 +68,14 @@ class LikeServiceTest extends AbstractIntegrationTest {
     }
 
     private Post createPost(User author) {
+        Instant now = Instant.now();
         Post post = Post.builder()
                 .author(author)
                 .content("Post content")
                 .category(PostCategory.GENERAL)
                 .status(PostStatus.PUBLISHED)
+                .createdAt(now)
+                .updatedAt(now)
                 .build();
 
         return postRepository.saveAndFlush(post);
@@ -213,5 +216,26 @@ class LikeServiceTest extends AbstractIntegrationTest {
         likeService.delete(user.getId(), post.getId());
 
         assertFalse(likeRepository.existsById(created.id()));
+    }
+
+    @Test
+    void hiddenPostIsNotLikableAndItsLikeIsHiddenFromAnotherUser() {
+        User author = createUser();
+        User reader = createUser();
+        User stranger = createUser();
+        User moderator = createUser();
+        moderator.setRole(UserRole.MODERATOR);
+        userRepository.saveAndFlush(moderator);
+        Post post = createPost(author);
+        LikeReadDto like = likeService.create(post.getId(), reader.getId());
+        post.setStatus(PostStatus.HIDDEN);
+        postRepository.saveAndFlush(post);
+
+        assertThrows(PostNotFoundException.class, () -> likeService.create(post.getId(), moderator.getId()));
+        assertThrows(LikeNotFoundException.class, () -> likeService.findById(like.id(), stranger.getId(), false));
+        assertThrows(PostNotFoundException.class,
+                () -> likeService.findAllByPostId(post.getId(), stranger.getId(), false, PageRequest.of(0, 10)));
+        assertEquals(like.id(), likeService.findById(like.id(), moderator.getId(), true).id());
+        assertTrue(likeService.findAllByUserId(reader.getId(), PageRequest.of(0, 10)).isEmpty());
     }
 }

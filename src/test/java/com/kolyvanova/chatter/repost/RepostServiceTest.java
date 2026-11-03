@@ -54,8 +54,10 @@ class RepostServiceTest extends AbstractIntegrationTest {
     }
 
     private Post createPost(User author) {
+        Instant now = Instant.now();
         return postRepository.saveAndFlush(Post.builder().author(author).content("Post content")
-                .category(PostCategory.GENERAL).status(PostStatus.PUBLISHED).build());
+                .category(PostCategory.GENERAL).status(PostStatus.PUBLISHED)
+                .createdAt(now).updatedAt(now).build());
     }
 
     @Test
@@ -172,5 +174,37 @@ class RepostServiceTest extends AbstractIntegrationTest {
         RepostReadDto created = repostService.create(createPost(author).getId(), user.getId());
         repostService.delete(created.id(), user.getId());
         assertFalse(repostRepository.existsById(created.id()));
+    }
+
+    @Test
+    void hiddenPostIsNotRepostableAndItsRepostIsHiddenFromAnotherUser() {
+        User author = createUser();
+        User reader = createUser();
+        User stranger = createUser();
+        User moderator = createUser();
+        moderator.setRole(UserRole.MODERATOR);
+        userRepository.saveAndFlush(moderator);
+        Post post = createPost(author);
+        RepostReadDto repost = repostService.create(post.getId(), reader.getId());
+        post.setStatus(PostStatus.HIDDEN);
+        postRepository.saveAndFlush(post);
+
+        assertThrows(PostNotFoundException.class, () -> repostService.create(post.getId(), moderator.getId()));
+        assertThrows(RepostNotFoundException.class, () -> repostService.findById(repost.id(), stranger.getId(), false));
+        assertThrows(PostNotFoundException.class,
+                () -> repostService.findAllByPostId(post.getId(), stranger.getId(), false, PageRequest.of(0, 10)));
+        assertEquals(repost.id(), repostService.findById(repost.id(), moderator.getId(), true).id());
+        assertTrue(repostService.findAllByUserId(reader.getId(), PageRequest.of(0, 10)).isEmpty());
+    }
+
+    @Test
+    void deleteOfAnotherUsersRepostIsNotFound() {
+        User author = createUser();
+        User owner = createUser();
+        User other = createUser();
+        RepostReadDto created = repostService.create(createPost(author).getId(), owner.getId());
+
+        assertThrows(RepostNotFoundException.class, () -> repostService.delete(created.id(), other.getId()));
+        assertTrue(repostRepository.existsById(created.id()));
     }
 }

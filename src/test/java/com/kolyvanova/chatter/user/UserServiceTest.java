@@ -76,6 +76,14 @@ class UserServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void createStoresTheUsernameInLowerCase() {
+        UserReadDto result = userService.create(createDto("Ivan_Ivanov", "ivan@mail.ru"));
+
+        assertEquals("ivan_ivanov", result.username());
+        assertEquals(result.id(), userService.findByUsername("IVAN_IVANOV").id());
+    }
+
+    @Test
     void createDuplicateUsername() {
         userService.create(createDto("ivan_ivanov", "ivan@mail.ru"));
         UserCreateDto duplicateUsername = createDto("ivan_ivanov", "new@mail.ru");

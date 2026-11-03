@@ -99,6 +99,22 @@ class PostServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void createReplyFailsWhenTheParentIsMissingOrHidden() {
+        User author = createUser();
+
+        assertThrows(PostNotFoundException.class, () -> postService.create(
+                new PostCreateDto("reply", PostCategory.GENERAL, UUID.randomUUID()), author.getId()));
+
+        PostReadDto parent = postService.create(createDto("parent"), author.getId());
+        Post stored = postRepository.findById(parent.id()).orElseThrow();
+        stored.setStatus(PostStatus.HIDDEN);
+        postRepository.saveAndFlush(stored);
+
+        assertThrows(PostNotFoundException.class, () -> postService.create(
+                new PostCreateDto("reply", PostCategory.GENERAL, parent.id()), author.getId()));
+    }
+
+    @Test
     void findById() {
         User author = createUser();
         PostReadDto created = postService.create(createDto("post"), author.getId());
@@ -335,5 +351,93 @@ class PostServiceTest extends AbstractIntegrationTest {
         assertEquals(1, feed.getTotalElements());
         assertEquals(followedPost.id(), feed.getContent().getFirst().id());
         assertTrue(emptyFeed.isEmpty());
+    }
+
+    @Test
+    void findAllFiltersPublishedRootsByCategory() {
+        User author = createUser();
+        PostReadDto nature = postService.create(new PostCreateDto("nature", PostCategory.NATURE, null), author.getId());
+        postService.create(createDto("general"), author.getId());
+        postService.create(new PostCreateDto("reply", PostCategory.NATURE, nature.id()), author.getId());
+
+        List<UUID> found = postService.findAll(PostCategory.NATURE, PageRequest.of(0, 10))
+                .map(PostReadDto::id).getContent();
+
+        assertEquals(List.of(nature.id()), found);
+    }
+
+    @Test
+    void findByIdCanSkipTheView() {
+        User author = createUser();
+        User reader = createUser();
+        PostReadDto created = postService.create(createDto("post"), author.getId());
+
+        PostReadDto skipped = postService.findById(created.id(), reader.getId(), false, false);
+
+        assertEquals(0, skipped.viewCount());
+        assertEquals(0, postRepository.findById(created.id()).orElseThrow().getViewCount());
+
+        PostReadDto counted = postService.findById(created.id(), reader.getId(), false, true);
+
+        assertEquals(1, counted.viewCount());
+        assertEquals(1, postRepository.findById(created.id()).orElseThrow().getViewCount());
+    }
+
+    @Test
+    void findRepliesListsPublishedRepliesAndDoesNotCountAView() {
+        User author = createUser();
+        User replier = createUser();
+        User reader = createUser();
+        PostReadDto parent = postService.create(createDto("parent"), author.getId());
+        PostReadDto published = postService.create(
+                new PostCreateDto("public reply", PostCategory.GENERAL, parent.id()), replier.getId());
+        PostReadDto hidden = postService.create(
+                new PostCreateDto("hidden reply", PostCategory.GENERAL, parent.id()), replier.getId());
+        Post hiddenReply = postRepository.findById(hidden.id()).orElseThrow();
+        hiddenReply.setStatus(PostStatus.HIDDEN);
+        postRepository.saveAndFlush(hiddenReply);
+
+        List<UUID> replies = postService.findReplies(parent.id(), reader.getId(), false, PageRequest.of(0, 10))
+                .map(PostReadDto::id).getContent();
+
+        assertEquals(List.of(published.id()), replies);
+        assertEquals(0, postRepository.findById(parent.id()).orElseThrow().getViewCount());
+        assertThrows(PostNotFoundException.class,
+                () -> postService.findReplies(UUID.randomUUID(), reader.getId(), false, PageRequest.of(0, 10)));
+    }
+
+    @Test
+    void repliesOfAHiddenPostAreVisibleToTheAuthorOnly() {
+        User author = createUser();
+        User reader = createUser();
+        PostReadDto parent = postService.create(createDto("parent"), author.getId());
+        postService.create(new PostCreateDto("reply", PostCategory.GENERAL, parent.id()), reader.getId());
+        Post stored = postRepository.findById(parent.id()).orElseThrow();
+        stored.setStatus(PostStatus.HIDDEN);
+        postRepository.saveAndFlush(stored);
+
+        assertThrows(PostNotFoundException.class,
+                () -> postService.findReplies(parent.id(), reader.getId(), false, PageRequest.of(0, 10)));
+        assertEquals(1, postService.findReplies(parent.id(), author.getId(), false, PageRequest.of(0, 10))
+                .getTotalElements());
+        assertEquals(0, postRepository.findById(parent.id()).orElseThrow().getViewCount());
+    }
+
+    @Test
+    void findRepliesByAuthorIdReturnsPublishedRepliesOnly() {
+        User author = createUser();
+        PostReadDto parent = postService.create(createDto("parent"), author.getId());
+        PostReadDto reply = postService.create(
+                new PostCreateDto("reply", PostCategory.GENERAL, parent.id()), author.getId());
+        PostReadDto hidden = postService.create(
+                new PostCreateDto("hidden reply", PostCategory.GENERAL, parent.id()), author.getId());
+        Post hiddenReply = postRepository.findById(hidden.id()).orElseThrow();
+        hiddenReply.setStatus(PostStatus.HIDDEN);
+        postRepository.saveAndFlush(hiddenReply);
+
+        List<UUID> replies = postService.findRepliesByAuthorId(author.getId(), PageRequest.of(0, 10))
+                .map(PostReadDto::id).getContent();
+
+        assertEquals(List.of(reply.id()), replies);
     }
 }

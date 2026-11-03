@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -35,6 +36,7 @@ public class UserRestController {
 
     private final UserService userService;
     private final CurrentUser currentUser;
+    private final MessageSource messageSource;
 
     @Operation(summary = "Create a user")
     @ApiResponse(responseCode = "400", description = "Request validation failed",
@@ -47,17 +49,31 @@ public class UserRestController {
         return userService.create(dto);
     }
 
-    @Operation(summary = "List users")
+    @Operation(summary = "List users. An admin also receives each user's role")
+    @ApiResponse(responseCode = "403", description = "Access is denied",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @GetMapping
-    public Page<UserPublicReadDto> findAll(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+    public Object findAll(
+            @RequestParam(required = false) UserRole role,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+        if (role != null) {
+            userService.requireAdmin(currentUser.id());
+            return userService.findAllForAdmin(role, pageable);
+        }
+        if (userService.isAdmin(currentUser.id())) {
+            return userService.findAllForAdmin(null, pageable);
+        }
         return userService.findAll(pageable);
     }
 
-    @Operation(summary = "Get a user")
+    @Operation(summary = "Get a user. An admin also receives the role")
     @ApiResponse(responseCode = "404", description = "User not found",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @GetMapping("/{id}")
-    public UserPublicReadDto findById(@PathVariable UUID id) {
+    public Object findById(@PathVariable UUID id) {
+        if (userService.isAdmin(currentUser.id())) {
+            return userService.findForAdmin(id);
+        }
         return userService.findById(id);
     }
 
@@ -77,7 +93,10 @@ public class UserRestController {
     @ApiResponse(responseCode = "404", description = "User not found",
             content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @GetMapping("/by-username")
-    public UserPublicReadDto findByUsername(@RequestParam String username) {
+    public Object findByUsername(@RequestParam String username) {
+        if (userService.isAdmin(currentUser.id())) {
+            return userService.findByUsernameForAdmin(username);
+        }
         return userService.findByUsername(username);
     }
 

@@ -27,4 +27,6 @@ public interface UserMapper {
     UserReadDto toReadDto(User user);
 
     UserPublicReadDto toPublicDto(User user);
+
+    UserStaffReadDto toStaffDto(User user);
 }

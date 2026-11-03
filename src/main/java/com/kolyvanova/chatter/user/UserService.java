@@ -57,6 +57,31 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public Page<UserStaffReadDto> findAllForAdmin(UserRole role, Pageable pageable) {
+        Page<User> users = role == null
+                ? userRepository.findAll(pageable)
+                : userRepository.findAllByRole(role, pageable);
+        return users.map(userMapper::toStaffDto);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isAdmin(UUID id) {
+        return roleOf(id) == UserRole.ADMIN;
+    }
+
+    public void requireAdmin(UUID actorId) {
+        if (!isAdmin(actorId)) {
+            throw new AccessDeniedException("Access Denied");
+        }
+    }
+
+    private UserRole roleOf(UUID id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id))
+                .getRole();
+    }
+
+    @Transactional(readOnly = true)
     public UserPublicReadDto findById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
@@ -65,11 +90,25 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public UserStaffReadDto findForAdmin(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+        return userMapper.toStaffDto(user);
+    }
+
+    @Transactional(readOnly = true)
     public UserPublicReadDto findByUsername(String username) {
         User user = userRepository.findByUsername(username.toLowerCase(Locale.ROOT))
                 .orElseThrow(() -> new UserNotFoundException(username));
 
         return  userMapper.toPublicDto(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserStaffReadDto findByUsernameForAdmin(String username) {
+        User user = userRepository.findByUsername(username.toLowerCase(Locale.ROOT))
+                .orElseThrow(() -> new UserNotFoundException(username));
+        return userMapper.toStaffDto(user);
     }
 
     @Transactional(readOnly = true)

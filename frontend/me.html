@@ -34,12 +34,18 @@
             <label><span class="field-name">Bio</span><span class="with-info"><textarea name="bio" rows="3"></textarea><span class="info" tabindex="0">i<span class="info-tip">Optional.</span></span></span></label>
             <label><span class="field-name">Location</span><span class="with-info"><input name="location" maxlength="100"><span class="info" tabindex="0">i<span class="info-tip">Optional. Up to 100 characters.</span></span></span></label>
             <label><span class="field-name">Birth date</span><span class="with-info"><input name="birthDate" type="date" required><span class="info" tabindex="0">i<span class="info-tip">A date in the past.</span></span></span></label>
-            <button class="btn" type="submit">Save</button>
+            <div class="row form-actions">
+                <button class="btn secondary" type="button" data-cancel>Cancel</button>
+                <button class="btn" type="submit">Save</button>
+            </div>
         </form>
         <form id="password-form" class="form" hidden>
             <label>Current password <input name="currentPassword" type="password" required></label>
             <label>New password <input name="newPassword" type="password" minlength="8" maxlength="100" required></label>
-            <button class="btn" type="submit">Change password</button>
+            <div class="row form-actions">
+                <button class="btn secondary" type="button" data-cancel>Cancel</button>
+                <button class="btn" type="submit">Change password</button>
+            </div>
         </form>
         <form id="avatar-form" class="form" hidden>
             <label>
@@ -49,7 +55,10 @@
                     <span class="info" tabindex="0">i<span class="info-tip">JPEG, PNG or HEIF. Maximum 5 MB.</span></span>
                 </span>
             </label>
-            <button class="btn" type="submit">Save avatar</button>
+            <div class="row form-actions">
+                <button class="btn secondary" type="button" data-cancel>Cancel</button>
+                <button class="btn" type="submit">Save avatar</button>
+            </div>
         </form>
         <div class="tabs" id="profile-tabs">
             <button class="active" type="button" data-profile-tab="posts">Posts</button>

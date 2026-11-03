@@ -41,6 +41,104 @@ async function loadSession() {
     repostByPost = new Map(reposts.content.map((item) => [item.postId, item.id]));
 }
 
+function canModerate() {
+    return me && (me.role === "MODERATOR" || me.role === "ADMIN");
+}
+
+function isAdmin() {
+    return me && me.role === "ADMIN";
+}
+
+function roleName(role) {
+    if (role === "ADMIN") return "Admin";
+    if (role === "MODERATOR") return "Moderator";
+    return "User";
+}
+
+function roleMark(role) {
+    const mark = document.createElement("span");
+    mark.className = "role role-" + (role || "USER");
+    mark.textContent = roleName(role);
+    return mark;
+}
+
+function caret(text) {
+    return text + " ▾";
+}
+
+function profileTitle(displayName, role) {
+    const line = document.createElement("div");
+    line.className = "profile-name";
+    const name = document.createElement("strong");
+    name.textContent = displayName;
+    line.append(name);
+    if (role) line.append(roleMark(role));
+    return line;
+}
+
+function bindCancel(form, restore) {
+    const button = form.querySelector("[data-cancel]");
+    if (!button) return;
+    button.addEventListener("click", () => {
+        form.reset();
+        if (restore) restore();
+        form.hidden = true;
+    });
+}
+
+function togglePanel(selector) {
+    const form = document.querySelector(selector);
+    if (!form) return;
+    const show = form.hidden;
+    document.querySelectorAll("main.feed > .form").forEach((item) => {
+        item.hidden = true;
+    });
+    form.hidden = !show;
+}
+
+function settingsMenu(items) {
+    const wrap = document.createElement("div");
+    wrap.className = "more settings";
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "more-btn";
+    toggle.setAttribute("aria-label", "Settings");
+    toggle.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.47.47 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6z"/></svg>';
+    const menu = document.createElement("div");
+    menu.className = "menu";
+    menu.hidden = true;
+    for (const item of items) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = item.label;
+        button.addEventListener("click", () => {
+            menu.hidden = true;
+            item.onClick();
+        });
+        menu.append(button);
+    }
+    toggle.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const open = !menu.hidden;
+        closeMenus();
+        menu.hidden = open;
+    });
+    wrap.append(toggle, menu);
+    return wrap;
+}
+
+function bindModerationNav() {
+    if (!canModerate()) return;
+    const nav = document.querySelector(".nav");
+    if (!nav || nav.querySelector("[data-moderation]")) return;
+    const link = document.createElement("a");
+    link.href = "moderation.html";
+    link.dataset.moderation = "";
+    if (document.body.dataset.page === "moderation") link.classList.add("active");
+    link.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 4.5 3.2 7.6 8 9.5 4.8-1.9 8-5 8-9.5V6z"/></svg><span>Moderation</span>';
+    nav.insertBefore(link, nav.querySelector(".nav-logout"));
+}
+
 function bindLogout() {
     const nav = document.querySelector(".nav");
     if (!nav || nav.querySelector("[data-logout]")) return;
@@ -78,13 +176,22 @@ async function postsByIds(ids) {
     return loaded.filter(Boolean);
 }
 
-async function authorPosts(userId, replies) {
+async function authorPosts(userId, replies, visibility) {
     if (userId === me.id) {
         const page = await api("/api/v1/posts/me?size=50&sort=createdAt,desc");
-        return page.content.filter((post) => replies ? post.replyToId : !post.replyToId);
+        return page.content.filter((post) => {
+            if (replies ? !post.replyToId : post.replyToId) return false;
+            if (replies || !canModerate() || !visibility || visibility === "all") return true;
+            if (visibility === "hidden") return post.status === "HIDDEN";
+            return post.status === "PUBLISHED";
+        });
     }
-    const kind = replies ? "&replies=true" : "";
-    const page = await api("/api/v1/posts/by-author?authorId=" + userId + kind + "&size=50&sort=createdAt,desc");
+    let path = "/api/v1/posts/by-author?authorId=" + userId;
+    if (replies) path += "&replies=true";
+    else if (canModerate() && visibility === "all") path += "&anyStatus=true";
+    else if (canModerate() && visibility === "hidden") path += "&status=HIDDEN";
+    else if (canModerate() && visibility === "published") path += "&status=PUBLISHED";
+    const page = await api(path + "&size=50&sort=createdAt,desc");
     return page.content;
 }
 
@@ -131,9 +238,25 @@ function avatarNode(user, large) {
     return node;
 }
 
-function when(iso) {
+function formatBirthDate(value) {
+    if (!value) return "";
+    const date = new Date(String(value).length === 10 ? value + "T00:00:00" : value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+}
+
+function when(iso, exact) {
     const date = new Date(iso);
     if (!iso || Number.isNaN(date.getTime())) return "now";
+    if (exact) {
+        return date.toLocaleString(undefined, {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    }
     const minutes = Math.round((Date.now() - date.getTime()) / 60000);
     if (minutes < 1) return "now";
     if (minutes < 60) return minutes + "m";
@@ -159,7 +282,7 @@ async function toggleFollow(authorId, button) {
     paintFollow(button, authorId);
 }
 
-function personRow(user) {
+function personRow(user, showRole) {
     const row = document.createElement("div");
     row.className = "person";
     row.append(avatarNode(user));
@@ -167,6 +290,7 @@ function personRow(user) {
     info.href = profileUrl(user.id);
     const name = document.createElement("strong");
     name.textContent = user.displayName;
+    if (showRole && isAdmin() && user.role) name.append(roleMark(user.role));
     const handle = document.createElement("span");
     handle.textContent = "@" + user.username;
     info.append(name, handle);
@@ -314,7 +438,8 @@ function renderPost(post, author, linked) {
     const handle = document.createElement("span");
     handle.textContent = "@" + author.username;
     const time = document.createElement("time");
-    time.textContent = when(post.createdAt);
+    if (post.createdAt) time.dateTime = post.createdAt;
+    time.textContent = when(post.createdAt, document.body.dataset.page === "post");
     const who = document.createElement("div");
     who.className = "who";
     who.append(name, handle, time);
@@ -332,7 +457,7 @@ function renderPost(post, author, linked) {
     const text = document.createElement("div");
     text.className = "content";
     text.textContent = post.content;
-    if (own) header.append(postMenu(post, article, linked, text));
+    if (own || canModerate()) header.append(postMenu(post, article, linked, text));
     const actions = document.createElement("div");
     actions.className = "actions";
 
@@ -448,6 +573,7 @@ function renderPost(post, author, linked) {
 }
 
 function postMenu(post, article, linked, text) {
+    const own = me && post.authorId === me.id;
     const more = document.createElement("div");
     more.className = "more";
     const toggle = document.createElement("button");
@@ -458,29 +584,61 @@ function postMenu(post, article, linked, text) {
     const menu = document.createElement("div");
     menu.className = "menu";
     menu.hidden = true;
-    const edit = document.createElement("button");
-    edit.type = "button";
-    edit.textContent = "Edit";
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.textContent = "Delete";
-    edit.addEventListener("click", () => {
-        menu.hidden = true;
-        editPost(post, text);
-    });
-    remove.addEventListener("click", () => {
-        menu.hidden = true;
-        deletePost(post, article, linked).catch(showError);
-    });
+    if (own) {
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.textContent = "Edit";
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "Delete";
+        edit.addEventListener("click", () => {
+            menu.hidden = true;
+            editPost(post, text);
+        });
+        remove.addEventListener("click", () => {
+            menu.hidden = true;
+            deletePost(post, article, linked).catch(showError);
+        });
+        menu.append(edit, remove);
+    }
+    if (canModerate()) {
+        const visibility = document.createElement("button");
+        visibility.type = "button";
+        visibility.textContent = post.status === "HIDDEN" ? "Show" : "Hide";
+        visibility.addEventListener("click", () => {
+            menu.hidden = true;
+            setPostVisibility(post, article, visibility).catch(showError);
+        });
+        menu.append(visibility);
+    }
     toggle.addEventListener("click", (event) => {
         event.stopPropagation();
         const open = !menu.hidden;
         closeMenus();
         menu.hidden = open;
     });
-    menu.append(edit, remove);
     more.append(toggle, menu);
     return more;
+}
+
+async function setPostVisibility(post, article, button) {
+    const hide = post.status !== "HIDDEN";
+    if (!confirm(hide ? "Hide this post?" : "Show this post?")) return;
+    await api("/api/v1/posts/" + post.id + (hide ? "/hide" : "/show"), { method: "PUT" });
+    post.status = hide ? "HIDDEN" : "PUBLISHED";
+    button.textContent = hide ? "Show" : "Hide";
+    const who = article.querySelector(".who");
+    let badge = who.querySelector(".badge");
+    if (hide) {
+        if (!badge) {
+            badge = document.createElement("span");
+            badge.className = "badge";
+            badge.textContent = "Hidden";
+            who.append(badge);
+        }
+    } else if (badge) {
+        badge.remove();
+    }
 }
 
 function closeMenus() {
@@ -547,12 +705,34 @@ async function bindProfileTabs(userId) {
     const box = document.querySelector("#posts");
     const empty = document.querySelector("#empty");
     const buttons = document.querySelectorAll("[data-profile-tab]");
+    const postsButton = document.querySelector("[data-profile-tab='posts']");
+    let visibility = "all";
+    let menu = null;
+    if (canModerate() && postsButton && !postsButton.closest(".tab-menu")) {
+        const wrap = document.createElement("div");
+        wrap.className = "tab-menu";
+        postsButton.replaceWith(wrap);
+        wrap.append(postsButton);
+        menu = document.createElement("div");
+        menu.className = "menu";
+        menu.id = "posts-menu";
+        menu.hidden = true;
+        for (const [value, text] of [["all", "All posts"], ["published", "Public"], ["hidden", "Hidden"]]) {
+            const item = document.createElement("button");
+            item.type = "button";
+            item.dataset.postFilter = value;
+            item.textContent = text;
+            menu.append(item);
+        }
+        wrap.append(menu);
+        postsButton.textContent = caret("All posts");
+    }
 
     async function select(tab) {
         buttons.forEach((button) => button.classList.toggle("active", button.dataset.profileTab === tab));
         let posts = [];
         if (tab === "posts" || tab === "replies") {
-            posts = await authorPosts(userId, tab === "replies");
+            posts = await authorPosts(userId, tab === "replies", visibility);
         } else if (tab === "likes") {
             const likes = await api("/api/v1/likes/by-user?userId=" + userId + "&size=50&sort=createdAt,desc");
             posts = await postsByIds(likes.content.map((item) => item.postId));
@@ -565,8 +745,22 @@ async function bindProfileTabs(userId) {
     }
 
     document.querySelector("#profile-tabs").addEventListener("click", (event) => {
+        const filter = event.target.closest("[data-post-filter]");
+        if (filter) {
+            visibility = filter.dataset.postFilter;
+            postsButton.textContent = caret(filter.textContent);
+            menu.hidden = true;
+            select("posts").catch(showError);
+            return;
+        }
         const button = event.target.closest("[data-profile-tab]");
         if (!button) return;
+        if (button === postsButton && menu) {
+            event.stopPropagation();
+            const open = !menu.hidden;
+            closeMenus();
+            menu.hidden = open;
+        }
         select(button.dataset.profileTab).catch(showError);
     });
     await select("posts");
@@ -626,7 +820,7 @@ async function loadFollowing(aside) {
     title.textContent = "Following";
     aside.append(title);
     for (const id of followingIds) {
-        aside.append(personRow(await userById(id)));
+        aside.append(personRow(await userById(id), false));
     }
 }
 
@@ -652,7 +846,7 @@ async function bindFeed() {
         });
         const categoriesTab = document.querySelector("#categories-tab");
         categoriesTab.classList.toggle("active", category);
-        categoriesTab.textContent = category ? label(filter) : "Categories";
+        categoriesTab.textContent = caret(category ? label(filter) : "Categories");
         menu.querySelectorAll("button").forEach((button) => {
             button.classList.toggle("active", button.dataset.filter === filter);
         });
@@ -741,17 +935,22 @@ async function bindProfile() {
     const head = document.querySelector("#profile");
     head.append(avatarNode(user, true));
     const info = document.createElement("div");
-    const name = document.createElement("strong");
-    name.textContent = user.displayName;
+    info.className = "profile-info";
     const handle = document.createElement("div");
     handle.className = "muted";
     handle.textContent = "@" + user.username;
     const bio = document.createElement("p");
     bio.textContent = user.bio || "";
-    const locationLine = document.createElement("div");
-    locationLine.className = "muted";
-    locationLine.textContent = user.location || "";
-    info.append(name, handle, bio, locationLine);
+    const facts = document.createElement("div");
+    facts.className = "muted";
+    facts.textContent = [user.location, formatBirthDate(user.birthDate)].filter(Boolean).join(" · ");
+    info.append(profileTitle(user.displayName, user.role), handle, bio, facts);
+    if (isAdmin() && user.role) {
+        head.append(settingsMenu([
+            { label: "Change role", onClick: () => togglePanel("#role-form") },
+        ]));
+        bindRoleForm(user);
+    }
     if (user.id !== me.id) {
         const row = document.createElement("div");
         row.className = "row";
@@ -770,8 +969,7 @@ async function bindMe() {
     const head = document.querySelector("#profile");
     head.append(avatarNode(me, true));
     const info = document.createElement("div");
-    const name = document.createElement("strong");
-    name.textContent = me.displayName;
+    info.className = "profile-info";
     const handle = document.createElement("div");
     handle.className = "muted";
     handle.textContent = "@" + me.username;
@@ -779,59 +977,27 @@ async function bindMe() {
     bio.textContent = me.bio || "";
     const details = document.createElement("div");
     details.className = "muted";
-    details.textContent = [me.email, me.location, me.birthDate].filter(Boolean).join(" · ");
-    const row = document.createElement("div");
-    row.className = "row";
-    const edit = document.createElement("button");
-    edit.className = "btn secondary";
-    edit.type = "button";
-    edit.textContent = "Edit profile";
-    const password = document.createElement("button");
-    password.className = "btn secondary";
-    password.type = "button";
-    password.textContent = "Change password";
-    const avatar = document.createElement("button");
-    avatar.className = "btn secondary";
-    avatar.type = "button";
-    avatar.textContent = "Change avatar";
-    const remove = document.createElement("button");
-    remove.className = "btn secondary";
-    remove.type = "button";
-    remove.textContent = "Delete account";
-    edit.addEventListener("click", () => {
-        const form = document.querySelector("#edit-form");
-        form.hidden = !form.hidden;
-    });
-    password.addEventListener("click", () => {
-        const form = document.querySelector("#password-form");
-        form.hidden = !form.hidden;
-    });
-    avatar.addEventListener("click", () => {
-        const form = document.querySelector("#avatar-form");
-        form.hidden = !form.hidden;
-    });
-    remove.addEventListener("click", async () => {
-        if (!confirm("Delete your account? This cannot be undone.")) return;
-        try {
-            await api("/api/v1/users/me", { method: "DELETE" });
-            localStorage.removeItem("token");
-            location.href = "login.html";
-        } catch (error) {
-            showError(error);
-        }
-    });
-    row.append(edit, password, avatar, remove);
-    info.append(name, handle, bio, details, row);
-    head.append(info);
+    details.textContent = [me.email, me.location, formatBirthDate(me.birthDate)].filter(Boolean).join(" · ");
+    info.append(profileTitle(me.displayName, me.role), handle, bio, details);
+    head.append(info, settingsMenu([
+        { label: "Edit profile", onClick: () => togglePanel("#edit-form") },
+        { label: "Change password", onClick: () => togglePanel("#password-form") },
+        { label: "Change avatar", onClick: () => togglePanel("#avatar-form") },
+        { label: "Delete account", onClick: () => deleteAccount() },
+    ]));
 
     const editForm = document.querySelector("#edit-form");
+    const fillEditForm = () => {
+        editForm.elements.username.value = me.username;
+        editForm.elements.email.value = me.email;
+        editForm.elements.displayName.value = me.displayName;
+        editForm.elements.bio.value = me.bio || "";
+        editForm.elements.location.value = me.location || "";
+        editForm.elements.birthDate.value = me.birthDate || "";
+    };
     watchUsername(editForm.elements.username);
-    editForm.elements.username.value = me.username;
-    editForm.elements.email.value = me.email;
-    editForm.elements.displayName.value = me.displayName;
-    editForm.elements.bio.value = me.bio || "";
-    editForm.elements.location.value = me.location || "";
-    editForm.elements.birthDate.value = me.birthDate || "";
+    fillEditForm();
+    bindCancel(editForm, fillEditForm);
     editForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const data = new FormData(editForm);
@@ -854,6 +1020,7 @@ async function bindMe() {
     });
 
     const passwordForm = document.querySelector("#password-form");
+    bindCancel(passwordForm);
     passwordForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const data = new FormData(passwordForm);
@@ -869,7 +1036,9 @@ async function bindMe() {
         }
     });
 
-    document.querySelector("#avatar-form").addEventListener("submit", async (event) => {
+    const avatarForm = document.querySelector("#avatar-form");
+    bindCancel(avatarForm);
+    avatarForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const form = new FormData();
         form.append("file", event.currentTarget.elements.file.files[0]);
@@ -882,6 +1051,150 @@ async function bindMe() {
     });
 
     await bindProfileTabs(me.id);
+}
+
+function staffList(title, people) {
+    const section = document.createElement("section");
+    const heading = document.createElement("h2");
+    heading.className = "section-title";
+    heading.textContent = title;
+    const list = document.createElement("div");
+    list.className = "people-list";
+    if (people.length === 0) {
+        const none = document.createElement("p");
+        none.className = "empty";
+        none.textContent = "No one yet.";
+        list.append(none);
+    } else {
+        list.append(...people.map((user) => personRow(user, true)));
+    }
+    section.append(heading, list);
+    return section;
+}
+
+function deleteAccount() {
+    if (!confirm("Delete your account? This cannot be undone.")) return;
+    api("/api/v1/users/me", { method: "DELETE" })
+        .then(() => {
+            localStorage.removeItem("token");
+            location.href = "login.html";
+        })
+        .catch(showError);
+}
+
+function ensureRoleForm() {
+    const existing = document.querySelector("#role-form");
+    if (existing) return existing;
+    const form = document.createElement("form");
+    form.id = "role-form";
+    form.className = "form";
+    form.hidden = true;
+    form.innerHTML = '<label><span class="field-name">Role</span><select name="role" required>'
+        + '<option value="USER">User</option><option value="MODERATOR">Moderator</option><option value="ADMIN">Admin</option>'
+        + '</select></label><p class="muted">The new role takes effect on their next login.</p>'
+        + '<div class="row form-actions"><button class="btn secondary" type="button" data-cancel>Cancel</button>'
+        + '<button class="btn" type="submit">Save</button></div>';
+    document.querySelector("#profile-tabs").before(form);
+    return form;
+}
+
+function bindRoleForm(user) {
+    const form = ensureRoleForm();
+    const apply = () => {
+        form.elements.role.value = user.role;
+    };
+    apply();
+    bindCancel(form, apply);
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const role = form.elements.role.value;
+        if (role === user.role) {
+            form.hidden = true;
+            return;
+        }
+        if (!confirm("Change this role to " + roleName(role) + "? It takes effect on their next login.")) return;
+        try {
+            await api("/api/v1/users/" + user.id + "/role?role=" + role, { method: "PUT" });
+            user.role = role;
+            const mark = document.querySelector(".profile-name .role");
+            if (mark) {
+                mark.className = "role role-" + user.role;
+                mark.textContent = roleName(user.role);
+            }
+            form.hidden = true;
+        } catch (error) {
+            showError(error);
+        }
+    });
+}
+
+async function bindModeration() {
+    const box = document.querySelector("#posts");
+    const staff = document.querySelector("#staff");
+    const empty = document.querySelector("#empty");
+    const tabs = document.querySelector("#moderation-tabs");
+    const postsButton = document.querySelector("#moderation-posts");
+    const menu = document.querySelector("#moderation-posts-menu");
+    let visibility = "all";
+    if (isAdmin()) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.moderation = "staff";
+        button.textContent = "Roles";
+        tabs.append(button);
+    }
+
+    function paintPostsButton() {
+        const labels = { all: "All posts", published: "Public", hidden: "Hidden" };
+        postsButton.textContent = caret(labels[visibility]);
+    }
+
+    async function select(tab) {
+        tabs.querySelectorAll("[data-moderation]").forEach((button) => {
+            button.classList.toggle("active", button.dataset.moderation === tab);
+        });
+        const people = tab === "staff";
+        box.hidden = people;
+        staff.hidden = !people;
+        if (people) {
+            const moderators = await api("/api/v1/users?role=MODERATOR&size=100&sort=username,asc");
+            const admins = await api("/api/v1/users?role=ADMIN&size=100&sort=username,asc");
+            staff.replaceChildren(
+                staffList("Moderators", moderators.content),
+                staffList("Admins", admins.content)
+            );
+            empty.hidden = true;
+            return;
+        }
+        let path = "/api/v1/posts/moderation?page=0&size=20&sort=createdAt,desc";
+        if (visibility === "published") path += "&status=PUBLISHED";
+        if (visibility === "hidden") path += "&status=HIDDEN";
+        const page = await api(path);
+        empty.hidden = page.content.length > 0;
+        await showPosts(page.content, box);
+    }
+
+    tabs.addEventListener("click", (event) => {
+        const filter = event.target.closest("[data-post-filter]");
+        if (filter) {
+            visibility = filter.dataset.postFilter;
+            paintPostsButton();
+            menu.hidden = true;
+            select("posts").catch(showError);
+            return;
+        }
+        const button = event.target.closest("[data-moderation]");
+        if (!button) return;
+        if (button === postsButton) {
+            event.stopPropagation();
+            const open = !menu.hidden;
+            closeMenus();
+            menu.hidden = open;
+        }
+        select(button.dataset.moderation).catch(showError);
+    });
+    await select("posts");
+    await loadFollowing(document.querySelector(".side"));
 }
 
 async function bindPeople() {
@@ -901,7 +1214,7 @@ async function bindPeople() {
                 if (error.status !== 404) throw error;
             }
         }
-        box.replaceChildren(...found.map(personRow));
+        box.replaceChildren(...found.map((user) => personRow(user, true)));
         empty.hidden = found.length > 0;
     }
 
@@ -923,6 +1236,15 @@ async function start() {
     bindLogout();
     try {
         await loadSession();
+        bindModerationNav();
+        if (page === "moderation") {
+            if (!canModerate()) {
+                location.replace("index.html");
+                return;
+            }
+            await bindModeration();
+            return;
+        }
         if (page === "feed") await bindFeed();
         if (page === "post") await bindPost();
         if (page === "profile") await bindProfile();

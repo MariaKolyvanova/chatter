@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="favicon.ico" sizes="48x48">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <title>Moderation · Chatter</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body data-page="moderation">
+<div class="app">
+    <aside class="nav">
+        <a class="brand" href="index.html">Chatter</a>
+        <a href="index.html">
+            <svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>
+            <span>Home</span>
+        </a>
+        <a href="people.html">
+            <svg viewBox="0 0 24 24"><path d="M10 4a6 6 0 1 0 3.6 10.8l4.3 4.3 1.4-1.4-4.3-4.3A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg>
+            <span>People</span>
+        </a>
+        <a href="me.html">
+            <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/></svg>
+            <span>Profile</span>
+        </a>
+    </aside>
+    <main class="feed">
+        <div class="tabs" id="moderation-tabs">
+            <div class="tab-menu">
+                <button class="active" type="button" id="moderation-posts" data-moderation="posts">All posts ▾</button>
+                <div class="menu" id="moderation-posts-menu" hidden>
+                    <button type="button" data-post-filter="all">All posts</button>
+                    <button type="button" data-post-filter="published">Public</button>
+                    <button type="button" data-post-filter="hidden">Hidden</button>
+                </div>
+            </div>
+        </div>
+        <div id="posts"></div>
+        <div id="staff" hidden></div>
+        <p class="empty" id="empty" hidden>Nothing here yet.</p>
+    </main>
+    <aside class="side"></aside>
+</div>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -27,6 +27,21 @@
     </aside>
     <main class="feed">
         <header class="profile-head" id="profile"></header>
+        <form id="role-form" class="form" hidden>
+            <label>
+                <span class="field-name">Role</span>
+                <select name="role" required>
+                    <option value="USER">User</option>
+                    <option value="MODERATOR">Moderator</option>
+                    <option value="ADMIN">Admin</option>
+                </select>
+            </label>
+            <p class="muted">The new role takes effect on their next login.</p>
+            <div class="row form-actions">
+                <button class="btn secondary" type="button" data-cancel>Cancel</button>
+                <button class="btn" type="submit">Save</button>
+            </div>
+        </form>
         <div class="tabs" id="profile-tabs">
             <button class="active" type="button" data-profile-tab="posts">Posts</button>
             <button type="button" data-profile-tab="replies">Replies</button>

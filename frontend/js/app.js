@@ -1133,23 +1133,70 @@ async function bindPost() {
     await showPosts(thread.content, document.querySelector("#replies"));
     document.querySelector("#reply-avatar").replaceWith(avatarNode(me));
     const replyForm = document.querySelector("#reply");
+    const photoInput = document.querySelector("#reply-file");
+    const photoPreview = document.querySelector("#reply-preview");
+    const photoImage = photoPreview.querySelector("img");
+    let previewUrl = null;
+
+    function clearReplyPhoto() {
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+            previewUrl = null;
+        }
+        photoInput.value = "";
+        photoImage.removeAttribute("src");
+        photoPreview.hidden = true;
+    }
+
+    function showReply(reply) {
+        likeCounts.set(reply.id, 0);
+        replyCounts.set(reply.id, 0);
+        repostCounts.set(reply.id, 0);
+        replyCounts.set(id, (replyCounts.get(id) || 0) + 1);
+        const shown = document.querySelector("#post .action.reply .count");
+        if (shown) shown.textContent = replyCounts.get(id);
+        document.querySelector("#replies").prepend(renderPost(reply, me, true));
+    }
+
+    document.querySelector("#reply-photo").addEventListener("click", () => photoInput.click());
+    photoInput.addEventListener("change", () => {
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        const file = photoInput.files[0];
+        if (!file) {
+            previewUrl = null;
+            photoPreview.hidden = true;
+            return;
+        }
+        previewUrl = URL.createObjectURL(file);
+        photoImage.src = previewUrl;
+        photoPreview.hidden = false;
+    });
+    document.querySelector("#reply-clear").addEventListener("click", clearReplyPhoto);
     replyForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const content = new FormData(replyForm).get("content");
+        const file = photoInput.files[0];
+        let reply = null;
         try {
-            const reply = await api("/api/v1/posts", {
+            reply = await api("/api/v1/posts", {
                 method: "POST",
                 body: { content, replyToId: id },
             });
+            if (file) {
+                const form = new FormData();
+                form.append("file", file);
+                const saved = await api("/api/v1/posts/" + reply.id + "/image", { method: "POST", form });
+                reply.imageKey = saved.imageKey;
+            }
             replyForm.reset();
-            likeCounts.set(reply.id, 0);
-            replyCounts.set(reply.id, 0);
-            repostCounts.set(reply.id, 0);
-            replyCounts.set(id, (replyCounts.get(id) || 0) + 1);
-            const shown = document.querySelector("#post .action.reply .count");
-            if (shown) shown.textContent = replyCounts.get(id);
-            document.querySelector("#replies").prepend(renderPost(reply, me, true));
+            clearReplyPhoto();
+            showReply(reply);
         } catch (error) {
+            if (reply) {
+                replyForm.reset();
+                clearReplyPhoto();
+                showReply(reply);
+            }
             showError(error);
         }
     });

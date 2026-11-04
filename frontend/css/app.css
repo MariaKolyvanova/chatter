@@ -532,8 +532,25 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .card h1 { margin: 8px 16px 0; font-size: 28px; }
 .card p { margin: 8px 16px 0; }
 
-form.reply { display: flex; gap: 12px; padding: 12px 16px 16px; }
-form.reply input { flex: 1; }
+form.reply { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px 16px; }
+form.reply .reply-main { flex: 1; min-width: 0; }
+form.reply .reply-field { position: relative; }
+form.reply .reply-field input { width: 100%; padding-right: 42px; }
+form.reply .photo-btn {
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    transform: translateY(-50%);
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--blue);
+    cursor: pointer;
+}
 
 .empty { padding: 32px 16px; color: var(--muted); text-align: center; }
 .notice {

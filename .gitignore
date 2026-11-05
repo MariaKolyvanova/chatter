@@ -36,4 +36,3 @@ build/
 application-local.properties
 *.env
 .env
-/media/

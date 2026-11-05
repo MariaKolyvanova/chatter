@@ -5,13 +5,13 @@ const DICTIONARY = {
         "nav.profile": "Profile",
         "nav.moderation": "Moderation",
         "nav.logout": "Log out",
-        "title.home": "Chatter",
-        "title.login": "Log in · Chatter",
-        "title.register": "Register · Chatter",
-        "title.profile": "Profile · Chatter",
-        "title.people": "People · Chatter",
-        "title.post": "Post · Chatter",
-        "title.moderation": "Moderation · Chatter",
+        "title.home": "CHATTER",
+        "title.login": "Log in · CHATTER",
+        "title.register": "Register · CHATTER",
+        "title.profile": "Profile · CHATTER",
+        "title.people": "People · CHATTER",
+        "title.post": "Post · CHATTER",
+        "title.moderation": "Moderation · CHATTER",
         "login.title": "Log in",
         "login.username": "Username",
         "login.password": "Password",
@@ -29,6 +29,8 @@ const DICTIONARY = {
         "field.bio": "Bio",
         "field.location": "Location",
         "field.birth-date": "Birth date",
+        "field.birth-date.format": "MM/DD/YYYY",
+        "field.birth-date.invalid": "Enter the birth date as MM/DD/YYYY",
         "field.current-password": "Current password",
         "field.new-password": "New password",
         "field.avatar": "Avatar",
@@ -40,7 +42,7 @@ const DICTIONARY = {
         "tip.display-name": "3–100 characters.",
         "tip.bio": "Optional.",
         "tip.location": "Optional. Up to 100 characters.",
-        "tip.birth-date": "A date in the past.",
+        "tip.birth-date": "MM/DD/YYYY. A date in the past.",
         "tip.avatar": "JPEG, PNG or HEIF. Maximum 5 MB. Cropped to a square from the center.",
         "action.cancel": "Cancel",
         "action.save": "Save",
@@ -192,13 +194,13 @@ const DICTIONARY = {
         "nav.profile": "Профиль",
         "nav.moderation": "Модерация",
         "nav.logout": "Выйти",
-        "title.home": "Chatter",
-        "title.login": "Вход · Chatter",
-        "title.register": "Регистрация · Chatter",
-        "title.profile": "Профиль · Chatter",
-        "title.people": "Люди · Chatter",
-        "title.post": "Пост · Chatter",
-        "title.moderation": "Модерация · Chatter",
+        "title.home": "CHATTER",
+        "title.login": "Вход · CHATTER",
+        "title.register": "Регистрация · CHATTER",
+        "title.profile": "Профиль · CHATTER",
+        "title.people": "Люди · CHATTER",
+        "title.post": "Пост · CHATTER",
+        "title.moderation": "Модерация · CHATTER",
         "login.title": "Вход",
         "login.username": "Имя пользователя",
         "login.password": "Пароль",
@@ -216,6 +218,8 @@ const DICTIONARY = {
         "field.bio": "О себе",
         "field.location": "Место",
         "field.birth-date": "Дата рождения",
+        "field.birth-date.format": "ДД.ММ.ГГГГ",
+        "field.birth-date.invalid": "Укажите дату рождения в формате ДД.ММ.ГГГГ",
         "field.current-password": "Текущий пароль",
         "field.new-password": "Новый пароль",
         "field.avatar": "Аватар",
@@ -227,7 +231,7 @@ const DICTIONARY = {
         "tip.display-name": "3–100 символов.",
         "tip.bio": "Необязательно.",
         "tip.location": "Необязательно. До 100 символов.",
-        "tip.birth-date": "Дата в прошлом.",
+        "tip.birth-date": "ДД.ММ.ГГГГ. Дата в прошлом.",
         "tip.avatar": "JPEG, PNG или HEIF. Максимум 5 МБ. Обрезается в квадрат по центру.",
         "action.cancel": "Отмена",
         "action.save": "Сохранить",
@@ -444,6 +448,11 @@ function mountLanguageSwitch() {
     const nav = document.querySelector(".nav");
     if (nav) {
         nav.append(wrap);
+        return;
+    }
+    const auth = document.querySelector(".auth-wrap");
+    if (auth) {
+        auth.append(wrap);
         return;
     }
     const card = document.querySelector(".card");

@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="favicon.ico" sizes="48x48">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <title data-i18n="title.login">Log in · Chatter</title>
+    <title data-i18n="title.login">Log in · CHATTER</title>
     <link rel="stylesheet" href="css/app.css">
 </head>
 <body class="auth" data-page="login">
-<main class="card">
-    <a class="brand" href="index.html">Chatter</a>
+<div class="auth-wrap">
+    <a class="brand" href="index.html">CHATTER</a>
+    <main class="card">
     <h1 data-i18n="login.title">Log in</h1>
     <form class="form">
         <label><span data-i18n="login.username">Username</span> <input name="username" autocomplete="username" required></label>
@@ -18,7 +19,8 @@
         <button class="btn" type="submit" data-i18n="login.submit">Log in</button>
     </form>
     <p class="muted"><span data-i18n="login.no-account">No account yet?</span> <a href="register.html" data-i18n="login.register">Register</a></p>
-</main>
+    </main>
+</div>
 <script src="js/config.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/api.js"></script>

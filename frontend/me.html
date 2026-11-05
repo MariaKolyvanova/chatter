@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="favicon.ico" sizes="48x48">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <title data-i18n="title.profile">Profile · Chatter</title>
+    <title data-i18n="title.profile">Profile · CHATTER</title>
     <link rel="stylesheet" href="css/app.css">
 </head>
 <body data-page="me">
 <div class="app">
     <aside class="nav">
-        <a class="brand" href="index.html">Chatter</a>
+        <a class="brand" href="index.html">CHATTER</a>
         <a href="index.html">
             <svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>
             <span data-i18n="nav.home">Home</span>
@@ -33,7 +33,7 @@
             <label><span class="field-name"><span data-i18n="field.display-name">Display name</span></span><span class="with-info"><input name="displayName" minlength="3" maxlength="100" required><span class="info" tabindex="0">i<span class="info-tip" data-i18n="tip.display-name">3–100 characters.</span></span></span></label>
             <label><span class="field-name"><span data-i18n="field.bio">Bio</span></span><span class="with-info"><textarea name="bio" rows="3"></textarea><span class="info" tabindex="0">i<span class="info-tip" data-i18n="tip.bio">Optional.</span></span></span></label>
             <label><span class="field-name"><span data-i18n="field.location">Location</span></span><span class="with-info"><input name="location" maxlength="100"><span class="info" tabindex="0">i<span class="info-tip" data-i18n="tip.location">Optional. Up to 100 characters.</span></span></span></label>
-            <label><span class="field-name"><span data-i18n="field.birth-date">Birth date</span></span><span class="with-info"><input name="birthDate" type="date" required><span class="info" tabindex="0">i<span class="info-tip" data-i18n="tip.birth-date">A date in the past.</span></span></span></label>
+            <label><span class="field-name"><span data-i18n="field.birth-date">Birth date</span></span><span class="with-info"><input name="birthDate" type="text" inputmode="numeric" autocomplete="bday" spellcheck="false" maxlength="10" pattern="\d{2}/\d{2}/\d{4}" placeholder="MM/DD/YYYY" required><span class="info" tabindex="0">i<span class="info-tip" data-i18n="tip.birth-date">MM/DD/YYYY. A date in the past.</span></span></span></label>
             <div class="row form-actions">
                 <button class="btn secondary" type="button" data-cancel data-i18n="action.cancel">Cancel</button>
                 <button class="btn" type="submit" data-i18n="action.save">Save</button>

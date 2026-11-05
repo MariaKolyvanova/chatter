@@ -278,6 +278,65 @@ function formatBirthDate(value) {
     return date.toLocaleDateString(localeTag(), { day: "numeric", month: "long", year: "numeric" });
 }
 
+function formatBirthDateInput(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso || "";
+    const [year, month, day] = iso.split("-");
+    return language() === "ru" ? day + "." + month + "." + year : month + "/" + day + "/" + year;
+}
+
+function readBirthDate(value) {
+    const text = String(value || "").trim();
+    const russian = language() === "ru";
+    const match = text.match(russian ? /^(\d{2})\.(\d{2})\.(\d{4})$/ : /^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return null;
+    const day = Number(russian ? match[1] : match[2]);
+    const month = Number(russian ? match[2] : match[1]);
+    const year = Number(match[3]);
+    const date = new Date(year, month - 1, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (date >= today) return { error: t("user.birth-date.past") };
+    const iso = String(year).padStart(4, "0") + "-" + String(month).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+    return { iso };
+}
+
+function birthDateForApi(value) {
+    const parsed = readBirthDate(value);
+    if (!parsed) {
+        showError(new Error(t("field.birth-date.invalid")));
+        return null;
+    }
+    if (parsed.error) {
+        showError(new Error(parsed.error));
+        return null;
+    }
+    return parsed.iso;
+}
+
+function bindBirthDate(input) {
+    if (!input || input.dataset.birthBound) return;
+    input.dataset.birthBound = "1";
+    const russian = language() === "ru";
+    const separator = russian ? "." : "/";
+    input.placeholder = russian ? "ДД.ММ.ГГГГ" : "MM/DD/YYYY";
+    input.pattern = russian ? "\\d{2}\\.\\d{2}\\.\\d{4}" : "\\d{2}/\\d{2}/\\d{4}";
+    input.title = t("field.birth-date.invalid");
+    input.dataset.birthPrevious = input.value;
+    input.addEventListener("input", () => {
+        const previous = input.dataset.birthPrevious || "";
+        let digits = input.value.replace(/\D/g, "").slice(0, 8);
+        const prevDigits = previous.replace(/\D/g, "");
+        if (digits.length === prevDigits.length && input.value.length < previous.length) {
+            digits = digits.slice(0, -1);
+        }
+        const parts = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean);
+        const next = parts.join(separator);
+        input.dataset.birthPrevious = next;
+        if (input.value !== next) input.value = next;
+    });
+}
+
 function when(iso, exact) {
     const date = new Date(iso);
     if (!iso || Number.isNaN(date.getTime())) return t("time.now");
@@ -315,7 +374,7 @@ async function toggleFollow(authorId, button) {
     paintFollow(button, authorId);
 }
 
-function personRow(user, showRole) {
+function personRow(user, showRole, follow) {
     const row = document.createElement("div");
     row.className = "person";
     row.append(avatarNode(user));
@@ -328,7 +387,7 @@ function personRow(user, showRole) {
     handle.textContent = "@" + user.username;
     info.append(name, handle);
     row.append(info);
-    if (me && user.id !== me.id) {
+    if (follow !== false && me && user.id !== me.id) {
         const button = document.createElement("button");
         button.type = "button";
         paintFollow(button, user.id);
@@ -805,14 +864,16 @@ async function deletePost(post, article, linked) {
     else location.href = "index.html";
 }
 
-async function showPosts(posts, box) {
+async function showPosts(posts, box, append, stillCurrent) {
     await Promise.all(posts.flatMap((post) => [
         ensureLikeCount(post.id),
         ensureReplyCount(post.id),
         ensureRepostCount(post.id),
     ]));
-    box.replaceChildren();
+    if (stillCurrent && !stillCurrent()) return;
+    if (!append) box.replaceChildren();
     for (const post of posts) {
+        if (stillCurrent && !stillCurrent()) return;
         box.append(renderPost(post, await userById(post.authorId), true));
     }
 }
@@ -966,9 +1027,12 @@ function bindLogin() {
 function bindRegister() {
     const form = document.querySelector("form");
     watchUsername(form.elements.username);
+    bindBirthDate(form.elements.birthDate);
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
         const data = new FormData(form);
+        const birthDate = birthDateForApi(data.get("birthDate"));
+        if (!birthDate) return;
         const body = {
             username: String(data.get("username") || "").toLowerCase(),
             email: data.get("email"),
@@ -976,7 +1040,7 @@ function bindRegister() {
             displayName: data.get("displayName"),
             bio: data.get("bio") || null,
             location: data.get("location") || null,
-            birthDate: data.get("birthDate"),
+            birthDate,
         };
         try {
             await api("/api/v1/auth/register", { method: "POST", body });
@@ -1025,6 +1089,39 @@ async function bindFeed() {
         menu.append(button);
     }
 
+    const pageSize = 10;
+    let feedFilter = "all";
+    let nextPage = 0;
+    let loading = false;
+    let finished = false;
+    let requestId = 0;
+
+    function feedPath(filter, page) {
+        const category = filter !== "all" && filter !== "following";
+        let path = "/api/v1/posts?page=" + page + "&size=" + pageSize + "&sort=createdAt,desc";
+        if (filter === "following") path = "/api/v1/posts/feed?page=" + page + "&size=" + pageSize + "&sort=createdAt,desc";
+        if (category) path = "/api/v1/posts?category=" + filter + "&page=" + page + "&size=" + pageSize + "&sort=createdAt,desc";
+        return path;
+    }
+
+    async function loadMore() {
+        if (loading || finished) return;
+        const ticket = requestId;
+        const pageNumber = nextPage;
+        loading = true;
+        try {
+            const page = await api(feedPath(feedFilter, pageNumber));
+            if (ticket !== requestId) return;
+            if (pageNumber === 0) empty.hidden = page.content.length > 0;
+            await showPosts(page.content, box, true, () => ticket === requestId);
+            if (ticket !== requestId) return;
+            nextPage = pageNumber + 1;
+            finished = page.last === true || page.content.length < pageSize;
+        } finally {
+            if (ticket === requestId) loading = false;
+        }
+    }
+
     async function select(filter) {
         const category = filter !== "all" && filter !== "following";
         document.querySelectorAll(".tabs > button").forEach((button) => {
@@ -1037,12 +1134,13 @@ async function bindFeed() {
             button.classList.toggle("active", button.dataset.filter === filter);
         });
         menu.hidden = true;
-        let path = "/api/v1/posts?page=0&size=20&sort=createdAt,desc";
-        if (filter === "following") path = "/api/v1/posts/feed?page=0&size=20&sort=createdAt,desc";
-        if (category) path = "/api/v1/posts?category=" + filter + "&page=0&size=20&sort=createdAt,desc";
-        const page = await api(path);
-        empty.hidden = page.content.length > 0;
-        await showPosts(page.content, box);
+        feedFilter = filter;
+        nextPage = 0;
+        finished = false;
+        loading = false;
+        requestId += 1;
+        box.replaceChildren();
+        await loadMore();
     }
 
     document.querySelector("#categories-tab").addEventListener("click", (event) => {
@@ -1119,7 +1217,13 @@ async function bindFeed() {
         }
     });
 
+    const sentinel = document.createElement("div");
+    box.after(sentinel);
     await select("all");
+    const observer = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) loadMore().catch(showError);
+    }, { rootMargin: "400px" });
+    observer.observe(sentinel);
     await loadFollowing(document.querySelector("#following"));
 }
 
@@ -1294,14 +1398,18 @@ async function bindMe() {
         editForm.elements.displayName.value = me.displayName;
         editForm.elements.bio.value = me.bio || "";
         editForm.elements.location.value = me.location || "";
-        editForm.elements.birthDate.value = me.birthDate || "";
+        editForm.elements.birthDate.value = formatBirthDateInput(me.birthDate);
+        editForm.elements.birthDate.dataset.birthPrevious = editForm.elements.birthDate.value;
     };
     watchUsername(editForm.elements.username);
+    bindBirthDate(editForm.elements.birthDate);
     fillEditForm();
     bindCancel(editForm, fillEditForm);
     editForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const data = new FormData(editForm);
+        const birthDate = birthDateForApi(data.get("birthDate"));
+        if (!birthDate) return;
         try {
             me = await api("/api/v1/users/me", {
                 method: "PUT",
@@ -1311,7 +1419,7 @@ async function bindMe() {
                     displayName: data.get("displayName"),
                     bio: data.get("bio") || null,
                     location: data.get("location") || null,
-                    birthDate: data.get("birthDate"),
+                    birthDate,
                 },
             });
             location.reload();
@@ -1400,7 +1508,43 @@ async function bindMe() {
     await bindProfileTabs(me.id);
 }
 
-function staffList(title, people) {
+function roleMenu(user, onChanged) {
+    const more = document.createElement("div");
+    more.className = "more";
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "more-btn";
+    toggle.setAttribute("aria-label", t("aria.more"));
+    toggle.append(svg(ICONS.more));
+    const menu = document.createElement("div");
+    menu.className = "menu";
+    menu.hidden = true;
+    for (const role of ["USER", "MODERATOR", "ADMIN"]) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = roleName(role);
+        if (role === user.role) button.classList.add("active");
+        button.addEventListener("click", () => {
+            menu.hidden = true;
+            if (role === user.role) return;
+            if (!confirm(t("confirm.role", { role: roleName(role) }))) return;
+            api("/api/v1/users/" + user.id + "/role?role=" + role, { method: "PUT" })
+                .then(() => onChanged())
+                .catch(showError);
+        });
+        menu.append(button);
+    }
+    toggle.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const open = !menu.hidden;
+        closeMenus();
+        menu.hidden = open;
+    });
+    more.append(toggle, menu);
+    return more;
+}
+
+function staffList(title, people, onRoleChanged) {
     const section = document.createElement("section");
     const heading = document.createElement("h2");
     heading.className = "section-title";
@@ -1413,7 +1557,11 @@ function staffList(title, people) {
         none.textContent = t("empty.none");
         list.append(none);
     } else {
-        list.append(...people.map((user) => personRow(user, true)));
+        list.append(...people.map((user) => {
+            const row = personRow(user, true, false);
+            if (isAdmin() && me && user.id !== me.id) row.append(roleMenu(user, onRoleChanged));
+            return row;
+        }));
     }
     section.append(heading, list);
     return section;
@@ -1527,9 +1675,10 @@ async function bindModeration() {
         if (people) {
             const moderators = await api("/api/v1/users?role=MODERATOR&size=100&sort=username,asc");
             const admins = await api("/api/v1/users?role=ADMIN&size=100&sort=username,asc");
+            const refresh = () => select("staff").catch(showError);
             staff.replaceChildren(
-                staffList(t("side.moderators"), moderators.content),
-                staffList(t("side.admins"), admins.content)
+                staffList(t("side.moderators"), moderators.content, refresh),
+                staffList(t("side.admins"), admins.content, refresh)
             );
             empty.hidden = true;
             return;
